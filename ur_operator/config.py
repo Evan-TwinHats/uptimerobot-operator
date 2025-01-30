@@ -7,7 +7,7 @@ class Config:
 
     @property
     def EXCLUDED_DOMAINS(self):
-        return os.getenv('URO_DISABLE_EXCLUDED_DOMAINS', '[]')
+        return os.getenv('URO_DISABLE_EXCLUDED_DOMAINS', 'default.local').split(",")
 
     @property
     def UPTIMEROBOT_API_KEY(self):
