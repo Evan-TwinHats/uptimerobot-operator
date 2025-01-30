@@ -214,7 +214,33 @@ class MonitorV1Beta1:
                             )
                         }
                     )
-                )
+                ),
+                additional_printer_columns=[
+                    k8s_client.V1CustomResourceColumnDefinition(
+                        description = 'Friendly Name',
+                        json_path = '.spec.friendlyName'.
+                        name = 'Friendly Name'.
+                        type = 'string'
+                    ),
+                    k8s_client.V1CustomResourceColumnDefinition(
+                        description = 'Monitor Type',
+                        json_path = '.spec.type'.
+                        name = 'Type'.
+                        type = 'string'
+                    ),
+                    k8s_client.V1CustomResourceColumnDefinition(
+                        description = 'Monitored URL',
+                        json_path = '.spec.url'.
+                        name = 'URL'.
+                        type = 'string'
+                    ),
+                    k8s_client.V1CustomResourceColumnDefinition(
+                        description = 'Monitored Path',
+                        json_path = '.spec.path'.
+                        name = 'Path'.
+                        type = 'string'
+                    )
+                ]
             )],
             scope='Namespaced',
             names=k8s_client.V1CustomResourceDefinitionNames(
