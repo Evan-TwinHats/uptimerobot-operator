@@ -86,6 +86,10 @@ class MonitorV1Beta1:
             type='string',
             description='URL that will be monitored'
         ),
+        'path': k8s_client.V1JSONSchemaProps(
+            type='string',
+            description='Path that will be appended to the URL to be monitored'
+        ),
         'type': k8s_client.V1JSONSchemaProps(
             type='string',
             enum=list(
@@ -249,7 +253,9 @@ class MonitorV1Beta1:
         }.items():
             request_dict[key] = enum_class[request_dict[key]
                                            ].value if key in request_dict else None
-
+        if 'path' in request_dict.keys():
+            request_dict['url'] = request_dict['url'] + request_dict.pop('path')
+            
         # drop None entries
 
         return {k: v for k, v in request_dict.items() if v is not None}
@@ -261,14 +267,13 @@ class MonitorV1Beta1:
         for key, value in annotations.items():
             if key not in MonitorV1Beta1.spec_properties:
                 continue
-
+            
             if MonitorV1Beta1.spec_properties[key].type == 'integer':
                 spec[key] = int(value)
             elif MonitorV1Beta1.spec_properties[key].type == 'object':
                 spec[key] = json.loads(value)
             else:
                 spec[key] = value
-
         return spec
 
     @staticmethod
