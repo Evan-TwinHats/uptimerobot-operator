@@ -300,14 +300,13 @@ def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, 
     for rule in spec['rules']:
         if 'host' not in rule:
             continue
-
+        host = rule['host']
         # Filter out wildcard, unqualified, and excluded domains
         if rule['host'].startswith('*') or '.' not in rule['host'] or rule['host'].endswith(config.EXCLUDED_DOMAINS):
-            logger.info(f'Excluding rule for {str(rule['host'])} as wildcard, unqualified, or excluded.')
+            if host is not None:
+                logger.info(f'Excluding rule for {host} as wildcard, unqualified, or excluded.')
             continue
             
-        host = rule['host']
-
         # we default to a ping check
         if 'type' not in monitor_spec:
             monitor_spec['type'] = MonitorType.PING.name
@@ -344,12 +343,13 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
         if 'host' not in rule:
             continue
 
+        host = rule['host']
         # Filter out wildcard, unqualified, and excluded domains
         if rule['host'].startswith('*') or '.' not in rule['host'] or rule['host'].endswith(config.EXCLUDED_DOMAINS):
-            logger.info(f'Excluding rule for {str(rule['host'])} as wildcard, unqualified, or excluded.')            
+            if host is not None:
+                logger.info(f'Excluding rule for {host} as wildcard, unqualified, or excluded.')            
             continue
 
-        host = rule['host']
 
         # we default to a ping check
         if 'type' not in monitor_spec:
