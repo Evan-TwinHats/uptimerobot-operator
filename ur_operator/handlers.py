@@ -303,6 +303,7 @@ def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, 
 
         # Filter out wildcard, unqualified, and excluded domains
         if rule['host'].startswith('*') or '.' not in rule['host'] or rule['host'].endswith(config.EXCLUDED_DOMAINS):
+            logger.info(f'Excluding rule for {rule['host']} as wildcard, unqualified, or excluded.')
             continue
             
         host = rule['host']
@@ -345,6 +346,7 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
 
         # Filter out wildcard, unqualified, and excluded domains
         if rule['host'].startswith('*') or '.' not in rule['host'] or rule['host'].endswith(config.EXCLUDED_DOMAINS):
+            logger.info(f'Excluding rule for {rule['host']} as wildcard, unqualified, or excluded.')            
             continue
 
         host = rule['host']
