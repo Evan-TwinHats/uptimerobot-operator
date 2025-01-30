@@ -301,9 +301,10 @@ def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, 
         if 'host' not in rule:
             continue
 
-        if rule['host'].startswith('*'):  # filter out wildcard domains
+        # Filter out wildcard, unqualified, and excluded domains
+        if rule['host'].startswith('*') or '.' not in rule['host'] or rule['host'].endswith(config.EXCLUDED_DOMAINS):
             continue
-
+            
         host = rule['host']
 
         # we default to a ping check
@@ -342,7 +343,8 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
         if 'host' not in rule:
             continue
 
-        if rule['host'].startswith('*'):  # filter out wildcard domains
+        # Filter out wildcard, unqualified, and excluded domains
+        if rule['host'].startswith('*') or '.' not in rule['host'] or rule['host'].endswith(config.EXCLUDED_DOMAINS):
             continue
 
         host = rule['host']
