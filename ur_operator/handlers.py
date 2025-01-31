@@ -327,10 +327,10 @@ def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, 
         k8s.create_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_body)
         logger.info(f'created new UptimeRobotMonitor object for URL {host}')
 
-def match_monitor_to_rule(rule: dict, crd):
+def match_monitor_to_rule(name: str, rule: dict, crd):
     return generate_monitor_name(rule) == crd.name 
     
-def generate_monitor_name(rule: dict):
+def generate_monitor_name(name: str, rule: dict):
     host = rule['host']
     port = rule['port'] if 'port' in rule.keys() else ''
     path = rule['path'] if 'path' in rule.keys() else ''
@@ -338,7 +338,7 @@ def generate_monitor_name(rule: dict):
     sha = hashlib.sha256()
     sha.update(f"{path}{port}".encode())
     digest = sha.hexdigest()[:8]
-    return f"{host}-{digest}"
+    return f"{name}--{host}-{digest}"
     
 @kopf.on.update('networking.k8s.io', 'v1', 'ingresses')
 def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, old: dict, logger, **_):
@@ -379,7 +379,7 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
             namespace, name=name, **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
         kopf.adopt(monitor_body)
         
-        
+        logger.info(f'Retrieved existing CRDs: {crds}')
         if any(crd.name == name for crd in crds):
             k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, monitor_body)
             logger.info(f'created new UptimeRobotMonitor object for URL {host}')
@@ -390,7 +390,7 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
         rules.append(rule)
 
     for crd in crds:   
-        if not any(match_monitor_to_rule(rule, crd) for rule in rules):
+        if crd.name.split('--')[0] == name and not any(match_monitor_to_rule(name, rule, crd) for rule in rules):
             k8s.delete_k8s_crd_obj(MonitorV1Beta1, namespace, crd.name)    
             logger.info('deleted obsolete UptimeRobotMonitor object')
     
