@@ -327,13 +327,13 @@ def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, 
         k8s.create_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_body)
         logger.info(f'created new UptimeRobotMonitor object for URL {host}')
 
-def match_monitor_to_rule(name: str, rule: dict, crd):
-    return generate_monitor_name(name, rule) == crd.metadata.name 
+def match_monitor_to_rule(name: str, rule: dict, crd:dict):
+    return generate_monitor_name(name, rule) == crd['metadata']['name'] 
 
-def match_crd_to_ingress(ingress: str, crd):
-    return (crd.metadata.annotations 
-        and 'uroperator.brennerm.github.io/monitor.ingress' in crd.metadata.annotations.keys()
-        and crd.metadata.annotations['uroperator.brennerm.github.io/monitor.ingress'] == name)
+def match_crd_to_ingress(ingress: str, crd: dict):
+    return ('annotations' in crd['metadata'].keys() 
+        and 'uroperator.brennerm.github.io/monitor.ingress' in crd['metadata']['annotations'].keys()
+        and crd['metadata']['annotations']['uroperator.brennerm.github.io/monitor.ingress'] == name)
         
 def generate_monitor_name(name: str, rule: dict):
     host = rule['host']
@@ -385,7 +385,7 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
         kopf.adopt(monitor_body)
         
         logger.info(f'Retrieved existing CRDs: {crds}')
-        if any(crd.name == name for crd in crds):
+        if any(crd['metadata']['name'] == name for crd in crds):
             k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, monitor_body)
             logger.info(f'created new UptimeRobotMonitor object for URL {host}')
         else:
@@ -396,7 +396,7 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
 
     for crd in crds:   
         if match_crd_to_ingress(name, crd) and not any(match_monitor_to_rule(name, rule, crd) for rule in rules):
-            k8s.delete_k8s_crd_obj(MonitorV1Beta1, namespace, crd.name)    
+            k8s.delete_k8s_crd_obj(MonitorV1Beta1, namespace, crd['metadata']['name'])    
             logger.info('deleted obsolete UptimeRobotMonitor object')
     
 @kopf.on.create(GROUP, VERSION, PLURAL)
