@@ -3,7 +3,7 @@ import logging
 import kubernetes.config as k8s_config
 import kubernetes.client as k8s_client
 
-from crds import constants
+from crds import constants, monitor
 
 class K8s:
     def __init__(self):
@@ -62,8 +62,8 @@ class K8s:
     def list_k8s_crd_obj(self, namespace):
         return self.custom_objects_api.list_namespaced_custom_object(
             group=constants.GROUP,
-            version=crd.version,
-            plural=crd.plural,
+            version=MonitorV1Beta1.version,
+            plural=MonitorV1Beta1.plural,
             namespace=namespace
         )
 
