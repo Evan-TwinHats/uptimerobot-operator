@@ -7,7 +7,7 @@ import json
 import kubernetes.client as k8s_client
 
 from k8s import K8s
-from .constants import GROUP
+from .constants import GROUP, SINGULAR, PLURAL, KIND, SHORT_NAMES, VERSION
 from .utils import camel_to_snake_case
 
 
@@ -73,12 +73,6 @@ class MonitorPostContentType(enum.Enum):
 
 
 class MonitorV1Beta1:
-    plural = 'uptimerobotmonitors'
-    singular = 'uptimerobotmonitor'
-    kind = 'UptimeRobotMonitor'
-    short_names = ['urm']
-    version = 'v1beta1'
-
     required_props = ['url', 'type']
 
     spec_properties = {
@@ -192,11 +186,11 @@ class MonitorV1Beta1:
     crd = k8s_client.V1CustomResourceDefinition(
         api_version='apiextensions.k8s.io/v1',
         kind='CustomResourceDefinition',
-        metadata=k8s_client.V1ObjectMeta(name=f'{plural}.{GROUP}'),
+        metadata=k8s_client.V1ObjectMeta(name=f'{PLURAL}.{GROUP}'),
         spec=k8s_client.V1CustomResourceDefinitionSpec(
             group=GROUP,
             versions=[k8s_client.V1CustomResourceDefinitionVersion(
-                name=version,
+                name=VERSION,
                 served=True,
                 storage=True,
                 schema=k8s_client.V1CustomResourceValidation(
@@ -244,10 +238,10 @@ class MonitorV1Beta1:
             )],
             scope='Namespaced',
             names=k8s_client.V1CustomResourceDefinitionNames(
-                plural=plural,
-                singular=singular,
-                kind=kind,
-                short_names=short_names
+                PLURAL=PLURAL,
+                singular=SINGULAR,
+                kind=KIND,
+                short_names=SHORT_NAMES
             )
         )
     )
@@ -312,8 +306,8 @@ class MonitorV1Beta1:
             metadata['name'] = name
 
         return {
-            'apiVersion': f'{GROUP}/{MonitorV1Beta1.version}',
-            'kind': MonitorV1Beta1.kind,
+            'apiVersion': f'{GROUP}/{VERSION}',
+            'kind': KIND,
             'metadata': metadata,
             'spec': spec
         }
