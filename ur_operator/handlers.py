@@ -59,6 +59,8 @@ def init_uptimerobot_api(logger):
 
 
 def create_monitor(logger, **kwargs):
+    if 'customHttpHeaders' not in kwargs.keys() and config.DEFAULT_HEADERS is not '':
+        kwargs['customHttpHeaders'] = config.DEFAULT_HEADERS
     resp = uptime_robot.new_monitor(
         **{k:str(v) for k,v in kwargs.items()}
         )
