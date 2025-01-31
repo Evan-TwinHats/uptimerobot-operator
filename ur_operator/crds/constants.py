@@ -1,4 +1,4 @@
-GROUP = 'UptimeRobot'
+GROUP = 'uptimerobot.twinhats.com'
 PLURAL = 'uptimerobotmonitors'
 SINGULAR = 'uptimerobotmonitor'
 KIND = 'UptimeRobotMonitor'
