@@ -1,4 +1,5 @@
 import logging
+import json
 
 import kubernetes.config as k8s_config
 import kubernetes.client as k8s_client
@@ -60,12 +61,13 @@ class K8s:
         )
 
     def list_k8s_crd_obj(self, namespace):
-        return self.custom_objects_api.list_namespaced_custom_object(
+        crds = self.custom_objects_api.list_namespaced_custom_object(
             group=constants.GROUP,
             version=constants.VERSION,
             plural=constants.PLURAL,
             namespace=namespace
         )
+        return json.loads(crds)
 
     def delete_k8s_crd_obj(self, crd, namespace, name):
         self.custom_objects_api.delete_namespaced_custom_object(
