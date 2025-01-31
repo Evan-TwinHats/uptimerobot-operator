@@ -328,17 +328,22 @@ def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, 
         logger.info(f'created new UptimeRobotMonitor object for URL {host}')
 
 def match_monitor_to_rule(name: str, rule: dict, crd):
-    return generate_monitor_name(rule) == crd.name 
-    
+    return generate_monitor_name(name, rule) == crd.metadata.name 
+
+def match_crd_to_ingress(ingress: str, crd):
+    return (crd.metadata.annotations 
+        and 'uroperator.brennerm.github.io/monitor.ingress' in crd.metadata.annotations.keys()
+        and crd.metadata.annotations['uroperator.brennerm.github.io/monitor.ingress'] == name)
+        
 def generate_monitor_name(name: str, rule: dict):
     host = rule['host']
     port = rule['port'] if 'port' in rule.keys() else ''
     path = rule['path'] if 'path' in rule.keys() else ''
     
     sha = hashlib.sha256()
-    sha.update(f"{path}{port}".encode())
+    sha.update(f"{name}{path}{port}".encode())
     digest = sha.hexdigest()[:8]
-    return f"{name}--{host}-{digest}"
+    return f"{host}-{digest}"
     
 @kopf.on.update('networking.k8s.io', 'v1', 'ingresses')
 def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, old: dict, logger, **_):
@@ -390,7 +395,7 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
         rules.append(rule)
 
     for crd in crds:   
-        if crd.name.split('--')[0] == name and not any(match_monitor_to_rule(name, rule, crd) for rule in rules):
+        if match_crd_to_ingress(name, crd) and not any(match_monitor_to_rule(name, rule, crd) for rule in rules):
             k8s.delete_k8s_crd_obj(MonitorV1Beta1, namespace, crd.name)    
             logger.info('deleted obsolete UptimeRobotMonitor object')
     
