@@ -334,9 +334,8 @@ def match_monitor_to_rule(name: str, rule: dict, crd:dict):
     return generate_monitor_name(name, rule) == crd['metadata']['name'] 
 
 def match_crd_to_ingress(ingress: str, crd: dict):
-    return ('annotations' in crd['metadata'].keys() 
-        and 'uroperator.brennerm.github.io/monitor.ingress' in crd['metadata']['annotations'].keys()
-        and crd['metadata']['annotations']['uroperator.brennerm.github.io/monitor.ingress'] == name)
+    return ('ownerReferences' in crd['metadata'].keys()
+        and crd['metadata']['ownerReferences'][0]['name'] == name)
         
 def generate_monitor_name(name: str, rule: dict):
     host = rule['host']
@@ -344,7 +343,7 @@ def generate_monitor_name(name: str, rule: dict):
     path = rule['path'] if 'path' in rule.keys() else ''
     
     sha = hashlib.sha256()
-    sha.update(f"{name}{path}{port}".encode())
+    sha.update(f"{name}{host}{path}{port}".encode())
     digest = sha.hexdigest()[:8]
     return f"{host}-{digest}"
     
@@ -389,7 +388,7 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
         kopf.adopt(monitor_body)
         
         #logger.info(f'Retrieved existing CRDs: {crds}')
-        if any(crd['metadata']['name'] == name for crd in crds):
+        if any(crd['metadata']['name'] == monitor_name for crd in crds):
             k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, monitor_body)
             logger.info(f'Updated UptimeRobotMonitor object for URL {host}')
         else:
