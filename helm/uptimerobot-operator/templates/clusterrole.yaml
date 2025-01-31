@@ -25,6 +25,6 @@ rules:
     verbs: [get, list, watch, patch]
 
 {{ end }}
-  - apiGroups: [uroperator.brennerm.github.io]
+  - apiGroups: [uptimerobot.twinhats.com]
     resources: ["*"]
     verbs: ["*"]
