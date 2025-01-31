@@ -301,7 +301,7 @@ class MonitorV1Beta1:
             'namespace': namespace
         }
         if spec['type'] == 'KEYWORD' and 'keywordType' not in spec:
-            spec['keywordType'] == 'NOT_EXISTS'
+            spec['keywordType'] = 'NOT_EXISTS'
         
         if name:
             metadata['name'] = name
