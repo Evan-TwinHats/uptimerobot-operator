@@ -1,4 +1,5 @@
 import logging
+import hashlib
 
 import kubernetes.config as k8s_config
 import kubernetes.client as k8s_client
@@ -296,7 +297,6 @@ def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, 
     monitor_prefix = f'{GROUP}/monitor.'
     monitor_spec = {k.replace(monitor_prefix, ''): v for k, v in annotations.items() if k.startswith(monitor_prefix)}
 
-    index = 0
     for rule in spec['rules']:
         if 'host' not in rule:
             continue
@@ -319,14 +319,25 @@ def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, 
             monitor_spec['url'] = host
 
         monitor_body = MonitorV1Beta1.construct_k8s_ur_monitor_body(
-            namespace, name=f"{name}-{index}", **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
+            namespace, name=generate_monitor_name(rule), **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
         kopf.adopt(monitor_body)
 
         k8s.create_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_body)
         logger.info(f'created new UptimeRobotMonitor object for URL {host}')
-        index += 1
 
-
+def match_monitor_to_rule(rule: dict, crd):
+    return generate_monitor_name(rule) == crd.name 
+    
+def generate_monitor_name(rule: dict):
+    host = rule['host']
+    path = rule['path']
+    port = rule['port']
+    
+    sha = hashlib.sha256()
+    sha.update(f"{path}{port}".encode())
+    digest = sha.hexdigest()[:8]
+    return f"{host}-{digest}"
+    
 @kopf.on.update('networking.k8s.io', 'v1', 'ingresses')
 def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, old: dict, logger, **_):
     if config.DISABLE_INGRESS_HANDLING:
@@ -336,9 +347,9 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
     monitor_prefix = f'{GROUP}/monitor.'
     monitor_spec = {k.replace(monitor_prefix, ''): v for k, v in annotations.items() if k.startswith(monitor_prefix)}
 
-    previous_rule_count = len(old['spec']['rules'])
-    index = 0
-
+    
+    crds = k8s.list_k8s_crd_obj_with_body(MonitorV1Beta1, namespace)
+    rules = []
     for rule in spec['rules']:
         if 'host' not in rule:
             continue
@@ -361,27 +372,26 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
             monitor_spec['url'] = f"https://{host}"
         else:
             monitor_spec['url'] = host
-
-        monitor_name = f"{name}-{index}"
-
+        name = name=generate_monitor_name(rule)
         monitor_body = MonitorV1Beta1.construct_k8s_ur_monitor_body(
-            namespace, name=monitor_name, **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
+            namespace, name=name, **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
         kopf.adopt(monitor_body)
-
-        if index >= previous_rule_count:  # at first update existing UptimeRobotMonitors, we currently don't check if there's actually a change
-            k8s.create_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_body)
-            logger.info(f'created new UptimeRobotMonitor object for URL {host}')
-        else:  # then create new UptimeRobotMonitors
+        
+        
+        if any(crd.name == name for crd in crds):
             k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, monitor_body)
+            logger.info(f'created new UptimeRobotMonitor object for URL {host}')
+        else:
+            k8s.create_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_body)
             logger.info(f'updated UptimeRobotMonitor object for URL {host}')
+        
+        rules.append(rule)
 
-        index += 1
-
-    while index < previous_rule_count:  # make sure to clean up remaining UptimeRobotMonitors
-        k8s.delete_k8s_crd_obj(MonitorV1Beta1, namespace, f"{name}-{index}")
-        logger.info('deleted obsolete UptimeRobotMonitor object')
-        index += 1
-
+    for crd in crds:   
+        if not any(match_monitor_to_rule(rule, crd) for rule in rules):
+            k8s.delete_k8s_crd_obj(MonitorV1Beta1, namespace, crd.name)    
+            logger.info('deleted obsolete UptimeRobotMonitor object')
+    
 @kopf.on.create(GROUP, MonitorV1Beta1.version, MonitorV1Beta1.plural)
 def on_create(namespace: str, name: str, spec: dict, logger, **_):
     identifier = create_monitor(
