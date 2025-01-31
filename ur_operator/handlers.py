@@ -332,8 +332,8 @@ def match_monitor_to_rule(rule: dict, crd):
     
 def generate_monitor_name(rule: dict):
     host = rule['host']
-    path = rule['path']
     port = rule['port']
+    path = rule['path'] if 'path' in rule.keys() else ''
     
     sha = hashlib.sha256()
     sha.update(f"{path}{port}".encode())
