@@ -384,7 +384,7 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
             namespace, ingressName=name,name=monitor_name, **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
         kopf.adopt(monitor_body)
         
-        logger.info(f'Retrieved existing CRDs: {crds}')
+        #logger.info(f'Retrieved existing CRDs: {crds}')
         if any(crd['metadata']['name'] == name for crd in crds):
             k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, monitor_body)
             logger.info(f'created new UptimeRobotMonitor object for URL {host}')
