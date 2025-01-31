@@ -292,6 +292,7 @@ def startup(logger, **_):
 
 @kopf.on.create('networking.k8s.io', 'v1', 'ingresses')
 def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, logger, **_):
+    logger.info(f"Creating monitors for new ingress {name}")
     if config.DISABLE_INGRESS_HANDLING:
         logger.debug('handling of Ingress resources has been disabled')
         return
@@ -311,6 +312,7 @@ def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, 
             
         # we default to a ping check
         if 'type' not in monitor_spec:
+            logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
             monitor_spec['type'] = config.DEFAULT_MONITOR_TYPE
 
         if monitor_spec['type'] == 'HTTP':
@@ -323,7 +325,8 @@ def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, 
         monitor_body = MonitorV1Beta1.construct_k8s_ur_monitor_body(
             namespace, name, name=generate_monitor_name(name, rule), **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
         kopf.adopt(monitor_body)
-
+        
+        logger.info(f"Creating monitor {monitor_body}")
         k8s.create_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_body)
         logger.info(f'created new UptimeRobotMonitor object for URL {host}')
 
@@ -347,6 +350,7 @@ def generate_monitor_name(name: str, rule: dict):
     
 @kopf.on.update('networking.k8s.io', 'v1', 'ingresses')
 def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, old: dict, logger, **_):
+    logger.info(f"Updating monitors for ingress {name}")
     if config.DISABLE_INGRESS_HANDLING:
         logger.debug('handling of Ingress resources has been disabled')
         return
@@ -387,10 +391,10 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
         #logger.info(f'Retrieved existing CRDs: {crds}')
         if any(crd['metadata']['name'] == name for crd in crds):
             k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, monitor_body)
-            logger.info(f'created new UptimeRobotMonitor object for URL {host}')
+            logger.info(f'Updated UptimeRobotMonitor object for URL {host}')
         else:
             k8s.create_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_body)
-            logger.info(f'updated UptimeRobotMonitor object for URL {host}')
+            logger.info(f'Created UptimeRobotMonitor object for URL {host}')
         
         rules.append(rule)
 
