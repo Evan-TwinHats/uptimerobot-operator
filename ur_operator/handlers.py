@@ -350,7 +350,7 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
     monitor_spec = {k.replace(monitor_prefix, ''): v for k, v in annotations.items() if k.startswith(monitor_prefix)}
 
     
-    crds = k8s.list_k8s_crd_obj_with_body(MonitorV1Beta1, namespace)
+    crds = k8s.list_k8s_crd_obj(MonitorV1Beta1, namespace)
     rules = []
     for rule in spec['rules']:
         if 'host' not in rule:
