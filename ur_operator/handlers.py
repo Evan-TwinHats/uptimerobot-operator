@@ -335,7 +335,7 @@ def match_monitor_to_rule(name: str, rule: dict, crd:dict):
 
 def match_crd_to_ingress(ingress: str, crd: dict):
     return ('ownerReferences' in crd['metadata'].keys()
-        and crd['metadata']['ownerReferences'][0]['name'] == name)
+        and crd['metadata']['ownerReferences'][0]['name'] == ingress)
         
 def generate_monitor_name(name: str, rule: dict):
     host = rule['host']
