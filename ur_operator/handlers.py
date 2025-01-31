@@ -310,7 +310,6 @@ def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, 
                 logger.info(f'Excluding rule for {host} as wildcard, unqualified, or excluded.')
             continue
             
-        # we default to a ping check
         if 'type' not in monitor_spec:
             logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
             monitor_spec['type'] = config.DEFAULT_MONITOR_TYPE
@@ -371,10 +370,9 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
                 logger.info(f'Excluding rule for {host} as wildcard, unqualified, or excluded.')            
             continue
 
-
-        # we default to a ping check
-        if 'type' not in monitor_spec:
-            monitor_spec['type'] = MonitorType.PING.name
+         if 'type' not in monitor_spec:
+            logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
+            monitor_spec['type'] = config.DEFAULT_MONITOR_TYPE
 
         if monitor_spec['type'] == 'HTTP':
             monitor_spec['url'] = f"http://{host}"
