@@ -6,6 +6,7 @@ uptimeRobotApiKey: ""
 # set to true if you don't want to create monitors automatically for your ingresses
 disableIngressHandling: false
 excludedDomains: dummy.local
+defaultHeaders: ''
 
 image:
   repository: cr.twinhats.com/twinhats/uptimerobot-operator
