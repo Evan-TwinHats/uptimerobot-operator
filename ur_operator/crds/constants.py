@@ -1,4 +1,4 @@
-GROUP = 'uroperator.brennerm.github.io'
+GROUP = 'UptimeRobot'
 PLURAL = 'uptimerobotmonitors'
 SINGULAR = 'uptimerobotmonitor'
 KIND = 'UptimeRobotMonitor'
