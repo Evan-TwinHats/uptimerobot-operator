@@ -321,7 +321,7 @@ def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, 
             monitor_spec['url'] = host
 
         monitor_body = MonitorV1Beta1.construct_k8s_ur_monitor_body(
-            namespace, name=generate_monitor_name(name, rule), **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
+            namespace, name, name=generate_monitor_name(name, rule), **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
         kopf.adopt(monitor_body)
 
         k8s.create_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_body)
@@ -376,7 +376,7 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
             monitor_spec['url'] = host
         monitor_name=generate_monitor_name(name, rule)
         monitor_body = MonitorV1Beta1.construct_k8s_ur_monitor_body(
-            namespace, name=monitor_name, **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
+            namespace, ingressName=name,name=monitor_name, **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
         kopf.adopt(monitor_body)
         
         logger.info(f'Retrieved existing CRDs: {crds}')
