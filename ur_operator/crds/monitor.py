@@ -211,9 +211,9 @@ class MonitorV1Beta1:
                 ),
                 additional_printer_columns=[
                     k8s_client.V1CustomResourceColumnDefinition(
-                        description = 'Friendly Name',
-                        json_path = '.spec.friendlyName',
-                        name = 'Friendly Name',
+                        description = 'Ingress',
+                        json_path = '.metadata.ownerReferences[0].name',
+                        name = 'Ingress',
                         type = 'string'
                     ),
                     k8s_client.V1CustomResourceColumnDefinition(
