@@ -10,5 +10,8 @@ class Config:
         return tuple(os.getenv('URO_EXCLUDED_DOMAINS', 'default.local').split(","))
 
     @property
+    def DEFAULT_HEADERS(self):
+        return os.getenv('URO_DEFAULT_HEADERS', '')
+    @property
     def UPTIMEROBOT_API_KEY(self):
         return os.environ['UPTIMEROBOT_API_KEY']
