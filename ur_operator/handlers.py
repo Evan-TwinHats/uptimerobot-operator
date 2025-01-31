@@ -333,13 +333,13 @@ def match_monitor_to_rule(name: str, rule: dict, crd:dict):
     return generate_monitor_name(name, rule) == crd['metadata']['name'] 
 
 def match_crd_to_ingress(ingress: str, crd: dict):
-    return ('ownerReferences' in crd['metadata'].keys()
+    return ('ownerReferences' in crd['metadata']
         and crd['metadata']['ownerReferences'][0]['name'] == ingress)
         
 def generate_monitor_name(name: str, rule: dict):
     host = rule['host']
-    port = rule['port'] if 'port' in rule.keys() else ''
-    path = rule['path'] if 'path' in rule.keys() else ''
+    port = rule['port'] if 'port' in rule else ''
+    path = rule['path'] if 'path' in rule else ''
     
     sha = hashlib.sha256()
     sha.update(f"{name}{host}{path}{port}".encode())
@@ -370,7 +370,7 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
                 logger.info(f'Excluding rule for {host} as wildcard, unqualified, or excluded.')            
             continue
 
-         if 'type' not in monitor_spec:
+        if 'type' not in monitor_spec:
             logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
             monitor_spec['type'] = config.DEFAULT_MONITOR_TYPE
 
