@@ -273,7 +273,7 @@ class MonitorV1Beta1:
         }.items():
             request_dict[key] = enum_class[request_dict[key]
                                            ].value if key in request_dict else None
-        if 'path' in request_dict.keys():
+        if 'path' in request_dict.keys() and request_dict['type'] in ['HTTP','HTTPS','KEYWORD']:
             request_dict['url'] = request_dict['url'] + request_dict.pop('path')
             
         # drop None entries
