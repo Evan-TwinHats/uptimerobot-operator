@@ -311,7 +311,7 @@ def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, 
             
         # we default to a ping check
         if 'type' not in monitor_spec:
-            monitor_spec['type'] = MonitorType.PING.name
+            monitor_spec['type'] = config.DEFAULT_MONITOR_TYPE
 
         if monitor_spec['type'] == 'HTTP':
             monitor_spec['url'] = f"http://{host}"
