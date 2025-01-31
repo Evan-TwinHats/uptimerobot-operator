@@ -40,6 +40,8 @@ spec:
               value: {{ .Values.excludedDomains | quote }}
             - name: URO_DEFAULT_HEADERS
               value: {{ .Values.defaultHeaders | quote }}
+            - name: URO_DEFAULT_MONITOR_TYPE
+              value: {{ .Values.defaultMonitorType | quote }}
             - name: URO_DISABLE_INGRESS_HANDLING
               value: {{ .Values.disableIngressHandling | quote }}
             - name: KOPF_OPTS
