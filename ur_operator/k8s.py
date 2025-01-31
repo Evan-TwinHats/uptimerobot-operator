@@ -3,7 +3,8 @@ import logging
 import kubernetes.config as k8s_config
 import kubernetes.client as k8s_client
 
-from crds import constants, monitor
+from crds import constants
+from crds.monitor import MonitorV1Beta1
 
 class K8s:
     def __init__(self):
