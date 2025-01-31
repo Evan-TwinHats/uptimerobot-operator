@@ -61,13 +61,12 @@ class K8s:
         )
 
     def list_k8s_crd_obj(self, namespace):
-        crds = self.custom_objects_api.list_namespaced_custom_object(
+        return self.custom_objects_api.list_namespaced_custom_object(
             group=constants.GROUP,
             version=constants.VERSION,
             plural=constants.PLURAL,
             namespace=namespace
-        )
-        return json.loads(crds).items
+        ).items
 
     def delete_k8s_crd_obj(self, crd, namespace, name):
         self.custom_objects_api.delete_namespaced_custom_object(
