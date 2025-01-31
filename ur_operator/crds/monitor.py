@@ -273,9 +273,8 @@ class MonitorV1Beta1:
         }.items():
             request_dict[key] = enum_class[request_dict[key]
                                            ].value if key in request_dict else None
-        if 'path' in request_dict.keys() and request_dict['type'] in ['HTTP','HTTPS','KEYWORD']:
+        if 'path' in request_dict and request_dict['type'] in ['HTTP','HTTPS','KEYWORD']:
             request_dict['url'] = request_dict['url'] + request_dict.pop('path')
-            
         # drop None entries
 
         return {k: v for k, v in request_dict.items() if v is not None}
@@ -301,12 +300,11 @@ class MonitorV1Beta1:
         metadata = {
             'namespace': namespace
         }
-
+        if spec['type'] == 'KEYWORD' and 'keywordType' not in spec:
+            spec['keywordType'] == 'NOT_EXISTS'
+        
         if name:
             metadata['name'] = name
-        if ingressName:
-            metadata['annotations'] = { 'uroperator.brennerm.github.io/monitor.ingress': ingressName }
-
         return {
             'apiVersion': f'{GROUP}/{VERSION}',
             'kind': KIND,
