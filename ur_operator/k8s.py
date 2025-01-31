@@ -62,8 +62,8 @@ class K8s:
     def list_k8s_crd_obj(self, namespace):
         return self.custom_objects_api.list_namespaced_custom_object(
             group=constants.GROUP,
-            version=MonitorV1Beta1.version,
-            plural=MonitorV1Beta1.plural,
+            version=constants.VERSION,
+            plural=constants.PLURAL,
             namespace=namespace
         )
 
