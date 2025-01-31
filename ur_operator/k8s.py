@@ -22,17 +22,17 @@ class K8s:
     def create_k8s_crd_obj_with_body(self, crd, namespace, body):
         return self.custom_objects_api.create_namespaced_custom_object(
             group=constants.GROUP,
-            version=crd.version,
+            version=constants.VERSION,
             namespace=namespace,
-            plural=crd.plural,
+            plural=constants.PLURAL,
             body=body
         )
 
     def update_k8s_crd_obj_with_body(self, crd, namespace, name, body):
         return self.custom_objects_api.patch_namespaced_custom_object(
             group=constants.GROUP,
-            version=crd.version,
-            plural=crd.plural,
+            version=constants.VERSION,
+            plural=constants.PLURAL,
             namespace=namespace,
             name=name,
             body=body
@@ -71,8 +71,8 @@ class K8s:
     def delete_k8s_crd_obj(self, crd, namespace, name):
         self.custom_objects_api.delete_namespaced_custom_object(
             group=constants.GROUP,
-            version=crd.version,
-            plural=crd.plural,
+            version=constants.VERSION,
+            plural=constants.PLURAL,
             namespace=namespace,
             name=name,
         )
