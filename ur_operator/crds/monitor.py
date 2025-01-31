@@ -297,13 +297,15 @@ class MonitorV1Beta1:
         return spec
 
     @staticmethod
-    def construct_k8s_ur_monitor_body(namespace, name=None, **spec):
+    def construct_k8s_ur_monitor_body(namespace, ingressName=None, name=None, **spec):
         metadata = {
             'namespace': namespace
         }
 
         if name:
             metadata['name'] = name
+        if ingressName:
+            metadata['annotations'] = { 'uroperator.brennerm.github.io/monitor.ingress': ingressName }
 
         return {
             'apiVersion': f'{GROUP}/{VERSION}',
