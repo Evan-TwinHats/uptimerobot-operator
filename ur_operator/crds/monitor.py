@@ -238,7 +238,7 @@ class MonitorV1Beta1:
             )],
             scope='Namespaced',
             names=k8s_client.V1CustomResourceDefinitionNames(
-                PLURAL=PLURAL,
+                plural=PLURAL,
                 singular=SINGULAR,
                 kind=KIND,
                 short_names=SHORT_NAMES
