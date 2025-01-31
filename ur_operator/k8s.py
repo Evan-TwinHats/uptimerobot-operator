@@ -66,7 +66,7 @@ class K8s:
             version=constants.VERSION,
             plural=constants.PLURAL,
             namespace=namespace
-        ).items
+        )['items']
 
     def delete_k8s_crd_obj(self, crd, namespace, name):
         self.custom_objects_api.delete_namespaced_custom_object(
