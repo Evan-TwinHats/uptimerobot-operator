@@ -43,7 +43,7 @@ class K8s:
             crd,
             namespace,
             {
-                'apiVersion': f'{constants.GROUP}/{crd.version}',
+                'apiVersion': f'{constants.GROUP}/{constants.VERSION}',
                 'kind': crd.kind,
                 'metadata': {'name': name, 'namespace': namespace},
                 'spec': spec
