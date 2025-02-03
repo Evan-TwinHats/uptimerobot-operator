@@ -81,7 +81,7 @@ def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, id=N
     if resp["error"]["type"] == 'already_exists':
         logger.info('Monitor already exists. Overwriting...')
         delete_monitor(logger, resp['monitor']['id'])
-        return create_or_update_monitor(namespace, name, spec, logger):
+        return create_or_update_monitor(namespace, name, spec, logger)
     # idStr = f' with ID {id}' if isUpdate else ''
     raise kopf.PermanentError(f'failed to create monitor {name}: {resp["error"]}')
 
