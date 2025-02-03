@@ -324,7 +324,7 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
 def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, spec: dict, logger):
     
     def match_monitor_to_rule(rule: dict, crd:dict):
-        return generate_monitor_name(ingressName, rule) == crd['metadata']['name'] 
+        return generate_monitor_name(rule) == crd['metadata']['name'] 
 
     def match_crd_to_ingress(crd: dict):
         return ('ownerReferences' in crd['metadata']
@@ -372,7 +372,7 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
         else:
             monitor_spec['url'] = host
         monitor_body = MonitorV1Beta1.construct_k8s_ur_monitor_body(
-            namespace, ingressName=generate_monitor_name(ingressName, rule), **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
+            namespace, ingressName=generate_monitor_name(rule), **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
         kopf.adopt(monitor_body)
         
         #logger.info(f'Retrieved existing CRDs: {crds}')
