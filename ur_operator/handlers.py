@@ -13,6 +13,7 @@ from crds.constants import GROUP, VERSION, SINGULAR, PLURAL
 from k8s import K8s
 import uptimerobot 
 from config import Config
+import json
 
 MONITOR_ID_KEY = 'monitor_id'
 PSP_ID_KEY = 'psp_id'
@@ -402,6 +403,8 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
     
 @kopf.on.create(GROUP, VERSION, PLURAL)
 def on_create(namespace: str, name: str, spec: dict, logger, **_):
+    mon=json.dumps(spec)
+    logger.info(f"Monitor created: {mon}")
     identifier = create_monitor(
         logger,
         **MonitorV1Beta1.spec_to_request_dict(namespace, name, spec)
@@ -411,6 +414,8 @@ def on_create(namespace: str, name: str, spec: dict, logger, **_):
 
 @kopf.on.update(GROUP, VERSION, PLURAL)
 def on_update(namespace: str, name: str, spec: dict, status: dict, diff: list, logger, **_):
+    mon=json.dumps(spec)
+    logger.info(f"Monitor updated: {mon}")
     try:
         identifier = get_identifier(status)
     except KeyError as error:
