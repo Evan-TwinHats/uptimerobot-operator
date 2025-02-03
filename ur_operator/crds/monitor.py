@@ -300,15 +300,15 @@ class MonitorV1Beta1:
         return spec
 
     @staticmethod
-    def construct_k8s_ur_monitor_body(namespace, ingressName=None, name=None, **spec):
+    def construct_k8s_ur_monitor_body(namespace, ingressName=None, **spec):
         metadata = {
             'namespace': namespace
         }
         if spec['type'] == 'KEYWORD' and 'keywordType' not in spec:
             spec['keywordType'] = 'NOT_EXISTS'
         
-        if name:
-            metadata['name'] = name
+        if ingressName:
+            metadata['name'] = ingressName
         return {
             'apiVersion': f'{GROUP}/{VERSION}',
             'kind': KIND,
