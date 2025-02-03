@@ -376,7 +376,7 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
         kopf.adopt(monitor_body)
         
         #logger.info(f'Retrieved existing CRDs: {crds}')
-        if any(match_monitor_to_rule(ingressName, rule, crd) for crd in crds):
+        if any(match_monitor_to_rule(rule, crd) for crd in crds):
             k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, monitor_body)
             logger.info(f'Updated UptimeRobotMonitor object for URL {host}')
         else:
@@ -386,7 +386,7 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
         rules.append(rule)
 
     for crd in crds:   
-        if match_crd_to_ingress(ingressName, crd) and not any(match_monitor_to_rule(ingressName, rule, crd) for rule in rules):
+        if match_crd_to_ingress(crd) and not any(match_monitor_to_rule(rule, crd) for rule in rules):
             k8s.delete_k8s_crd_obj(MonitorV1Beta1, namespace, crd['metadata']['name'])    
             logger.info('deleted obsolete UptimeRobotMonitor object')
             
