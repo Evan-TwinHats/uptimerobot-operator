@@ -317,7 +317,7 @@ def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, 
 
         if monitor_spec['type'] == 'HTTP':
             monitor_spec['url'] = f"http://{host}"
-        elif monitor_spec['type'] == 'HTTPS':
+        elif monitor_spec['type'] in ['HTTPS', 'KEYWORD']:
             monitor_spec['url'] = f"https://{host}"
         else:
             monitor_spec['url'] = host
@@ -377,7 +377,7 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
 
         if monitor_spec['type'] == 'HTTP':
             monitor_spec['url'] = f"http://{host}"
-        elif monitor_spec['type'] == 'HTTPS':
+        elif monitor_spec['type'] in ['HTTPS', 'KEYWORD']:
             monitor_spec['url'] = f"https://{host}"
         else:
             monitor_spec['url'] = host
