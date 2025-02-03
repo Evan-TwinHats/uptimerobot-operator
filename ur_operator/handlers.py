@@ -89,6 +89,26 @@ def update_monitor(logger, identifier, **kwargs):
 
     raise kopf.PermanentError(f'failed to update monitor with ID {identifier}: {resp["error"]}')
 
+def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, id=None):
+    isUpdate = id != None
+
+    request_dict = MonitorV1Beta1.spec_to_request_dict(namespace, name, spec)
+    if 'path' in request_dict and request_dict['type'] in ['HTTP','HTTPS','KEYWORD']:
+            request_dict['url'] = request_dict['url'] + request_dict.pop('path')
+
+    if 'customHttpHeaders' not in request_dict and config.DEFAULT_HEADERS != '':
+        request_dict['customHttpHeaders'] = config.DEFAULT_HEADERS
+    
+    resp = uptime_robot.edit_monitor(identifier, request_dict) if isUpdate else uptime_robot.new_monitor(request_dict)
+
+    if resp['stat'] == 'ok':
+        id = resp['monitor']['id']
+        logger.info(
+            'monitor with ID {1} has been {2} successfully'.format(id, 'updated' if isUpdate else 'created'))
+        return identifier
+
+    idStr = f' with ID {identifier}' if isUpdate else ''
+    raise kopf.PermanentError(f'failed to create monitor{idStr}: {resp["error"]}')
 
 def delete_monitor(logger, identifier):
     resp = uptime_robot.delete_monitor(identifier)
@@ -294,62 +314,32 @@ def startup(logger, **_):
 @kopf.on.create('networking.k8s.io', 'v1', 'ingresses')
 def on_ingress_create(name: str, namespace: str, annotations: dict, spec: dict, logger, **_):
     logger.info(f"Creating monitors for new ingress {name}")
-    if config.DISABLE_INGRESS_HANDLING:
-        logger.debug('handling of Ingress resources has been disabled')
-        return
-
-    monitor_prefix = f'{GROUP}/monitor.'
-    monitor_spec = {k.replace(monitor_prefix, ''): v for k, v in annotations.items() if k.startswith(monitor_prefix)}
-
-    for rule in spec['rules']:
-        if 'host' not in rule:
-            continue
-        host = rule['host']
-        # Filter out wildcard, unqualified, and excluded domains
-        if rule['host'].startswith('*') or '.' not in rule['host'] or rule['host'].endswith(config.EXCLUDED_DOMAINS):
-            if host is not None:
-                logger.info(f'Excluding rule for {host} as wildcard, unqualified, or excluded.')
-            continue
-            
-        if 'type' not in monitor_spec:
-            logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
-            monitor_spec['type'] = config.DEFAULT_MONITOR_TYPE
-
-        if monitor_spec['type'] == 'HTTP':
-            monitor_spec['url'] = f"http://{host}"
-        elif monitor_spec['type'] in ['HTTPS', 'KEYWORD']:
-            monitor_spec['url'] = f"https://{host}"
-        else:
-            monitor_spec['url'] = host
-
-        monitor_body = MonitorV1Beta1.construct_k8s_ur_monitor_body(
-            namespace, name, name=generate_monitor_name(name, rule), **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
-        kopf.adopt(monitor_body)
-        
-        logger.info(f"Creating monitor {monitor_body}")
-        k8s.create_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_body)
-        logger.info(f'created new UptimeRobotMonitor object for URL {host}')
-
-def match_monitor_to_rule(name: str, rule: dict, crd:dict):
-    return generate_monitor_name(name, rule) == crd['metadata']['name'] 
-
-def match_crd_to_ingress(ingress: str, crd: dict):
-    return ('ownerReferences' in crd['metadata']
-        and crd['metadata']['ownerReferences'][0]['name'] == ingress)
-        
-def generate_monitor_name(name: str, rule: dict):
-    host = rule['host']
-    port = rule['port'] if 'port' in rule else ''
-    path = rule['path'] if 'path' in rule else ''
-    
-    sha = hashlib.sha256()
-    sha.update(f"{name}{host}{path}{port}".encode())
-    digest = sha.hexdigest()[:8]
-    return f"{host}-{digest}"
+    create_or_update_crds(name, namespace, annotations, spec, logger)
     
 @kopf.on.update('networking.k8s.io', 'v1', 'ingresses')
 def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, old: dict, logger, **_):
     logger.info(f"Updating monitors for ingress {name}")
+    create_or_update_crds(name, namespace, annotations, spec, logger)
+
+def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, spec: dict, logger):
+    
+    def match_monitor_to_rule(rule: dict, crd:dict):
+        return generate_monitor_name(ingressName, rule) == crd['metadata']['name'] 
+
+    def match_crd_to_ingress(crd: dict):
+        return ('ownerReferences' in crd['metadata']
+            and crd['metadata']['ownerReferences'][0]['name'] == ingressName)
+            
+    def generate_monitor_name(rule: dict):
+        host = rule['host']
+        port = rule['port'] if 'port' in rule else ''
+        path = rule['path'] if 'path' in rule else ''
+        
+        sha = hashlib.sha256()
+        sha.update(f"{ingressName}{host}{path}{port}".encode())
+        digest = sha.hexdigest()[:8]
+        return f"{host}-{digest}"
+        
     if config.DISABLE_INGRESS_HANDLING:
         logger.debug('handling of Ingress resources has been disabled')
         return
@@ -381,13 +371,12 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
             monitor_spec['url'] = f"https://{host}"
         else:
             monitor_spec['url'] = host
-        monitor_name=generate_monitor_name(name, rule)
         monitor_body = MonitorV1Beta1.construct_k8s_ur_monitor_body(
-            namespace, ingressName=name,name=monitor_name, **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
+            namespace, ingressName=name,name=generate_monitor_name(ingressName, rule), **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
         kopf.adopt(monitor_body)
         
         #logger.info(f'Retrieved existing CRDs: {crds}')
-        if any(crd['metadata']['name'] == monitor_name for crd in crds):
+        if any(match_monitor_to_rule(name, rule, crd) for crd in crds):
             k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, monitor_body)
             logger.info(f'Updated UptimeRobotMonitor object for URL {host}')
         else:
@@ -397,19 +386,14 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
         rules.append(rule)
 
     for crd in crds:   
-        if match_crd_to_ingress(name, crd) and not any(match_monitor_to_rule(name, rule, crd) for rule in rules):
+        if match_crd_to_ingress(ingressName, crd) and not any(match_monitor_to_rule(ingressName, rule, crd) for rule in rules):
             k8s.delete_k8s_crd_obj(MonitorV1Beta1, namespace, crd['metadata']['name'])    
             logger.info('deleted obsolete UptimeRobotMonitor object')
-    
+            
 @kopf.on.create(GROUP, VERSION, PLURAL)
 def on_create(namespace: str, name: str, spec: dict, logger, **_):
     logger.info(f"Monitor created: {name}")
-    identifier = create_monitor(
-        logger,
-        **MonitorV1Beta1.spec_to_request_dict(namespace, name, spec)
-    )
-
-    return {MONITOR_ID_KEY: identifier}
+    return {MONITOR_ID_KEY: create_or_update_monitor(namespace, name, spec, logger)}
 
 @kopf.on.update(GROUP, VERSION, PLURAL)
 def on_update(namespace: str, name: str, spec: dict, status: dict, diff: list, logger, **_):
@@ -419,24 +403,27 @@ def on_update(namespace: str, name: str, spec: dict, status: dict, diff: list, l
     except KeyError as error:
         raise kopf.PermanentError(
             "was not able to determine the monitor ID for update") from error
-
     if type_changed(diff):
         logger.info('monitor type changed, need to delete and recreate')
         delete_monitor(logger, identifier)
+        return {MONITOR_ID_KEY: create_or_update_monitor(namespace, name, spec, logger)}
+    else
+        return {MONITOR_ID_KEY: create_or_update_monitor(namespace, name, spec, logger, identifier)}
 
-        identifier = create_monitor(
-            logger,
-            **MonitorV1Beta1.spec_to_request_dict(namespace, name, spec)
-        )
-    else:
-        identifier = update_monitor(
-            logger,
-            identifier,
-            **MonitorV1Beta1.spec_to_request_dict(namespace, name, spec)
-        )
-
-    return {MONITOR_ID_KEY: identifier}
-
+    
+# def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, identifier=None)
+    
+#     if identifier:
+#         return update_monitor(
+#             logger,
+#             identifier,
+#             **MonitorV1Beta1.spec_to_request_dict(namespace, name, spec)
+#         )
+#     else:
+#          return create_monitor(
+#             logger,
+#             **MonitorV1Beta1.spec_to_request_dict(namespace, name, spec)
+#         )
 
 @kopf.on.delete(GROUP, VERSION, PLURAL)
 def on_delete(status: dict, logger, **_):
