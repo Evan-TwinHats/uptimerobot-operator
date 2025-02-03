@@ -372,7 +372,7 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
         else:
             monitor_spec['url'] = host
         monitor_body = MonitorV1Beta1.construct_k8s_ur_monitor_body(
-            namespace, ingressName=name,name=generate_monitor_name(ingressName, rule), **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
+            namespace, ingressName=generate_monitor_name(ingressName, rule), **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
         kopf.adopt(monitor_body)
         
         #logger.info(f'Retrieved existing CRDs: {crds}')
