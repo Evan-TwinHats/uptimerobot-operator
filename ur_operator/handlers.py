@@ -324,6 +324,11 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
 
     
     crds = k8s.list_k8s_crd_obj(namespace)
+    for crd in crds:   
+        if match_crd_to_ingress(crd) and not any(match_crd_to_rule(rule, crd) for rule in rules):
+            k8s.delete_k8s_crd_obj(MonitorV1Beta1, namespace, crd['metadata']['name'])    
+            logger.info('deleted obsolete UptimeRobotMonitor object')
+            
     rules = []
     for rule in spec['rules']:
         if 'host' not in rule:
@@ -360,11 +365,6 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
             logger.info(f'Created UptimeRobotMonitor object for URL {host}')
         
         rules.append(rule)
-
-    for crd in crds:   
-        if match_crd_to_ingress(crd) and not any(match_crd_to_rule(rule, crd) for rule in rules):
-            k8s.delete_k8s_crd_obj(MonitorV1Beta1, namespace, crd['metadata']['name'])    
-            logger.info('deleted obsolete UptimeRobotMonitor object')
             
 @kopf.on.create(GROUP, VERSION, PLURAL)
 def on_create(namespace: str, name: str, spec: dict, logger, **_):
