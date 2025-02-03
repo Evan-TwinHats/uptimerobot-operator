@@ -78,8 +78,12 @@ def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, id=N
             'monitor with ID {0} has been {1} successfully'.format(id, 'updated' if isUpdate else 'created'))
         return id
 
-    idStr = f' with ID {id}' if isUpdate else ''
-    raise kopf.PermanentError(f'failed to create monitor{idStr}: {resp["error"]}')
+    if resp["error"]["type"] == 'already_exists':
+        logger.info('Monitor already exists. Overwriting...')
+        delete_monitor(logger, resp['monitor']['id'])
+        return create_or_update_monitor(namespace, name, spec, logger):
+    # idStr = f' with ID {id}' if isUpdate else ''
+    raise kopf.PermanentError(f'failed to create monitor {name}: {resp["error"]}')
 
 def delete_monitor(logger, id):
     resp = uptime_robot.delete_monitor(id)
