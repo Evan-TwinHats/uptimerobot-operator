@@ -62,14 +62,16 @@ def init_uptimerobot_api(logger):
 def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, id=None):
     isUpdate = id != None
 
-    request_dict = MonitorV1Beta1.spec_to_request_dict(namespace, name, spec)
-    if 'path' in request_dict and request_dict['type'] in ['HTTP','HTTPS','KEYWORD']:
-            request_dict['url'] = request_dict['url'] + request_dict.pop('path')
-
-    if 'customHttpHeaders' not in request_dict and config.DEFAULT_HEADERS != '':
-        logger.info(f'CustomHttpHeaders not set on monitor. Using defaults: {config.DEFAULT_HEADERS}')
-        request_dict['customHttpHeaders'] = config.DEFAULT_HEADERS
+    specDict = {k: v for k, v in spec.items()}
+    if 'path' in specDict and specDict['type'] in ['HTTP','HTTPS','KEYWORD']:
+            specDict['url'] = specDict['url'] + specDict.pop('path')
     
+    default_headers = config.DEFAULT_HEADERS
+    if 'customHttpHeaders' not in specDict and default_headers != '':
+        logger.info(f'CustomHttpHeaders not set on monitor. Using defaults: {default_headers}')
+        specDictv['customHttpHeaders'] = default_headers
+    
+    request_dict = MonitorV1Beta1.spec_to_request_dict(namespace, name, specDict)
     resp = uptime_robot.edit_monitor(id, **request_dict) if isUpdate else uptime_robot.new_monitor(**request_dict)
 
     if resp['stat'] == 'ok':
