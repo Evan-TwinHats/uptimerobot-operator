@@ -407,7 +407,7 @@ def on_update(namespace: str, name: str, spec: dict, status: dict, diff: list, l
         logger.info('monitor type changed, need to delete and recreate')
         delete_monitor(logger, identifier)
         return {MONITOR_ID_KEY: create_or_update_monitor(namespace, name, spec, logger)}
-    else
+    else:
         return {MONITOR_ID_KEY: create_or_update_monitor(namespace, name, spec, logger, identifier)}
 
     
