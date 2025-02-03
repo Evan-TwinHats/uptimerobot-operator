@@ -67,6 +67,7 @@ def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, id=N
             request_dict['url'] = request_dict['url'] + request_dict.pop('path')
 
     if 'customHttpHeaders' not in request_dict and config.DEFAULT_HEADERS != '':
+        logger.info(f'CustomHttpHeaders not set on monitor. Using defaults: {0}'.format(config.DEFAULT_HEADERS))
         request_dict['customHttpHeaders'] = config.DEFAULT_HEADERS
     
     resp = uptime_robot.edit_monitor(id, **request_dict) if isUpdate else uptime_robot.new_monitor(**request_dict)
