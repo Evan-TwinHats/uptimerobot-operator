@@ -59,36 +59,6 @@ def init_uptimerobot_api(logger):
         raise kopf.PermanentError(error)
 
 
-def create_monitor(logger, **kwargs):
-    if 'customHttpHeaders' not in kwargs.keys() and config.DEFAULT_HEADERS != '':
-        kwargs['customHttpHeaders'] = config.DEFAULT_HEADERS
-    resp = uptime_robot.new_monitor(
-        **{k:str(v) for k,v in kwargs.items()}
-        )
-
-    if resp['stat'] == 'ok':
-        identifier = resp['monitor']['id']
-        logger.info(
-            f'monitor with ID {identifier} has been created successfully')
-        return identifier
-
-    raise kopf.PermanentError(f'failed to create monitor: {resp["error"]}')
-
-
-def update_monitor(logger, identifier, **kwargs):
-    resp = uptime_robot.edit_monitor(
-        identifier,
-        **{k:str(v) for k,v in kwargs.items()}
-        )
-
-    if resp['stat'] == 'ok':
-        identifier = resp['monitor']['id']
-        logger.info(
-            f'monitor with ID {identifier} has been updated successfully')
-        return identifier
-
-    raise kopf.PermanentError(f'failed to update monitor with ID {identifier}: {resp["error"]}')
-
 def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, id=None):
     isUpdate = id != None
 
@@ -99,7 +69,7 @@ def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, id=N
     if 'customHttpHeaders' not in request_dict and config.DEFAULT_HEADERS != '':
         request_dict['customHttpHeaders'] = config.DEFAULT_HEADERS
     
-    resp = uptime_robot.edit_monitor(identifier, request_dict) if isUpdate else uptime_robot.new_monitor(request_dict)
+    resp = uptime_robot.edit_monitor(identifier, **request_dict) if isUpdate else uptime_robot.new_monitor(**request_dict)
 
     if resp['stat'] == 'ok':
         id = resp['monitor']['id']
@@ -412,20 +382,6 @@ def on_update(namespace: str, name: str, spec: dict, status: dict, diff: list, l
         return {MONITOR_ID_KEY: create_or_update_monitor(namespace, name, spec, logger, identifier)}
 
     
-# def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, identifier=None)
-    
-#     if identifier:
-#         return update_monitor(
-#             logger,
-#             identifier,
-#             **MonitorV1Beta1.spec_to_request_dict(namespace, name, spec)
-#         )
-#     else:
-#          return create_monitor(
-#             logger,
-#             **MonitorV1Beta1.spec_to_request_dict(namespace, name, spec)
-#         )
-
 @kopf.on.delete(GROUP, VERSION, PLURAL)
 def on_delete(status: dict, logger, **_):
     try:  # making sure to catch all exceptions here to prevent blocking deletion
