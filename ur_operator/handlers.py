@@ -69,30 +69,30 @@ def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, id=N
     if 'customHttpHeaders' not in request_dict and config.DEFAULT_HEADERS != '':
         request_dict['customHttpHeaders'] = config.DEFAULT_HEADERS
     
-    resp = uptime_robot.edit_monitor(identifier, **request_dict) if isUpdate else uptime_robot.new_monitor(**request_dict)
+    resp = uptime_robot.edit_monitor(id, **request_dict) if isUpdate else uptime_robot.new_monitor(**request_dict)
 
     if resp['stat'] == 'ok':
         id = resp['monitor']['id']
         logger.info(
             'monitor with ID {0} has been {1} successfully'.format(id, 'updated' if isUpdate else 'created'))
-        return identifier
+        return id
 
-    idStr = f' with ID {identifier}' if isUpdate else ''
+    idStr = f' with ID {id}' if isUpdate else ''
     raise kopf.PermanentError(f'failed to create monitor{idStr}: {resp["error"]}')
 
-def delete_monitor(logger, identifier):
-    resp = uptime_robot.delete_monitor(identifier)
+def delete_monitor(logger, id):
+    resp = uptime_robot.delete_monitor(id)
     if resp['stat'] == 'ok':
         logger.info(
-            f'monitor with ID {identifier} has been deleted successfully')
+            f'monitor with ID {id} has been deleted successfully')
     else:
         if resp['error']['type'] == 'not_found':
             logger.info(
-                f'monitor with ID {identifier} has already been deleted')
+                f'monitor with ID {id} has already been deleted')
             return
 
         raise kopf.PermanentError(
-            f'failed to delete monitor with ID {identifier}: {resp["error"]}')
+            f'failed to delete monitor with ID {id}: {resp["error"]}')
 
 def create_psp(logger, **kwargs):
     resp = uptime_robot.new_psp(
