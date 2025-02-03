@@ -74,7 +74,7 @@ def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, id=N
     if resp['stat'] == 'ok':
         id = resp['monitor']['id']
         logger.info(
-            'monitor with ID {1} has been {2} successfully'.format(id, 'updated' if isUpdate else 'created'))
+            'monitor with ID {0} has been {1} successfully'.format(id, 'updated' if isUpdate else 'created'))
         return identifier
 
     idStr = f' with ID {identifier}' if isUpdate else ''
