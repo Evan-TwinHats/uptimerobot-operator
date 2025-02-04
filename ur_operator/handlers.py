@@ -316,7 +316,7 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
 
         host = rule['host']
         # Filter out wildcard, unqualified, and excluded domains
-        if rule['host'].startswith('*') or '.' not in rule['host'] or rule['host'].endswith(config.EXCLUDED_DOMAINS):
+        if host.startswith('*') or '.' not in host or host.endswith(config.EXCLUDED_DOMAINS):
             if host is not None:
                 logger.info(f'Excluding rule for {host} as wildcard, unqualified, or excluded.')            
         else:
@@ -348,6 +348,7 @@ def set_crd_defaults(namespace: str, monitor_name: str, monitor_body: dict, logg
             logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
             monitor_body['type'] = config.DEFAULT_MONITOR_TYPE
 
+    host = rule['host']
     if monitor_body['type'] == 'HTTP':
         monitor_body['url'] = f"http://{host}"
     elif monitor_body['type'] in ['HTTPS', 'KEYWORD']:
