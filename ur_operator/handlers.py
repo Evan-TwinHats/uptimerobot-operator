@@ -355,7 +355,7 @@ def set_crd_defaults(namespace: str, monitor_name: str, monitor_body: dict, logg
     else:
         monitor_body['url'] = host
 
-    default_headers = config.DEFAULT_HEADERS
+    default_headers = config.DEFAULT_HEADERS()
     if 'customHttpHeaders' not in monitor_body and default_headers != {}:
         logger.info('CustomHttpHeaders not set on monitor. Using defaults: ' + json.dumps(default_headers))
         monitor_body['customHttpHeaders'] = default_headers
