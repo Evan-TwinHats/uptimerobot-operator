@@ -28,7 +28,6 @@ k8s = None
 # disable liveness check request logs
 logging.getLogger('aiohttp.access').setLevel(logging.WARN)
 
-
 def create_crds(logger):
     try:
         k8s_config.load_kube_config()
@@ -86,53 +85,44 @@ def update_monitor(namespace: str, name: str, spec: dict, logger, id):
 def delete_monitor(logger, id):
     check_response(uptime_robot.delete_monitor(id), logger, "monitor", "delete", id)
 
-def create_psp(logger, **kwargs):
-    resp = uptime_robot.new_psp(
-        type='1',
-        **{k:str(v) for k,v in kwargs.items()}
-        )
+def stringify_values(props):
+    return {k:str(v) for k,v in props.items()}
+
+def create_psp(logger, props):
+    resp = uptime_robot.new_psp(type='1', **stringify_values(props))
     check_response(resp, logger, "PSP", "create")
     
-def update_psp(logger, id, **kwargs):
-    resp = uptime_robot.edit_psp(id, **{k:str(v) for k,v in kwargs.items()} )
+def update_psp(logger, id, props):
+    resp = uptime_robot.edit_psp(id, **stringify_values(props))
     check_response(resp, logger, "PSP", "update")
 
 def delete_psp(logger, id):
     check_response(uptime_robot.delete_psp(id), logger, "PSP", "delete")
 
-def create_mw(logger, **kwargs):
-    resp = uptime_robot.new_m_window(**{k:str(v) for k,v in kwargs.items()})
+def create_mw(logger, props):
+    resp = uptime_robot.new_m_window(**stringify_values(props))
     check_response(resp, logger, "MW", "create", jsonName="mwindow")
 
-def update_mw(logger, id, **kwargs):
-    resp = uptime_robot.edit_m_window(id, **{k:str(v) for k,v in kwargs.items()})
+def update_mw(logger, id, props):
+    resp = uptime_robot.edit_m_window(id, **stringify_values(props))
     check_response(resp, logger, "MW", "update", id, "mwindow")
 
 def delete_mw(logger, id):
     check_response(uptime_robot.delete_m_window(id), logger, "MW", "delete", id)
 
-def create_ac(logger, **kwargs):
-    resp = uptime_robot.new_alert_contact(**{k:str(v) for k,v in kwargs.items()})
+def create_ac(logger, props):
+    resp = uptime_robot.new_alert_contact(**stringify_values(props))
     check_response(resp, logger, "alert contact", "delete", id, "alertcontact")
 
-def update_ac(logger, id, **kwargs):
-    resp = uptime_robot.edit_alert_contact(str(id), **{k:str(v) for k,v in kwargs.items()} )
+def update_ac(logger, id, props):
+    resp = uptime_robot.edit_alert_contact(id, **stringify_values(props))
     check_response(resp, logger, "alert contact", "update", id, "alert_contact")
 
 def delete_ac(logger, id):
-    check_response(uptime_robot.delete_alert_contact(str(id)), logger, "alert contact", "update", id)
-
-def type_changed(diff: list):
-    try:
-        for entry in diff:
-            if entry[0] == 'change' and entry[1][1] == 'type':
-                return True
-    except IndexError:
-        return False
-    return False
+    check_response(uptime_robot.delete_alert_contact(id), logger, "alert contact", "update", id)
 
 def get_status_value(status: dict, keyName, updateEvent, createEvent):
-    return (status[updateEvent.__name__][keyName] if updateEvent.__name__ in status 
+    return str(status[updateEvent.__name__][keyName] if updateEvent.__name__ in status 
             else status[createEvent.__name__][keyName] if createEvent.__name__ in status 
             else -1 )
 
@@ -199,6 +189,7 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
             continue
 
         host = rule['host']
+
         # Filter out wildcard, unqualified, and excluded domains
         if host.startswith('*') or '.' not in host or host.endswith(config.EXCLUDED_DOMAINS):
             if host is not None:
@@ -245,8 +236,7 @@ def formatUrl(monitor_body: dict, host):
 
 def set_crd_defaults(namespace: str, monitor_name: str, monitor_body: dict, logger):
     updated_body = {k:v for k,v in monitor_body.items()}
-    # logger.info(f"Setting monitor defaults for {monitor_name}")
-    
+   
     formatUrl(updated_body, updated_body['url'])
 
     if 'customHttpHeaders' not in updated_body and config.DEFAULT_HEADERS != {}:
@@ -256,6 +246,15 @@ def set_crd_defaults(namespace: str, monitor_name: str, monitor_body: dict, logg
     k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, 
         MonitorV1Beta1.construct_k8s_ur_monitor_body(namespace, monitor_name, **updated_body))
     return updated_body
+
+def type_changed(diff: list):
+    try:
+        for entry in diff:
+            if entry[0] == 'change' and entry[1][1] == 'type':
+                return True
+    except IndexError:
+        return False
+    return False
 
 @kopf.on.create(GROUP, VERSION, PLURAL)
 def on_create(namespace: str, name: str, spec: dict, logger, **_):
@@ -292,12 +291,7 @@ def on_delete(status: dict, logger, **_):
 
 @kopf.on.create(GROUP, VERSION, PspV1Beta1.plural)
 def on_psp_create(namespace: str, name: str, spec: dict, logger, **_):
-    identifier = create_psp(
-        logger,
-        **PspV1Beta1.spec_to_request_dict(namespace, name, spec)
-    )
-
-    return {PSP_ID_KEY: identifier}
+    return {PSP_ID_KEY: create_psp(logger, PspV1Beta1.spec_to_request_dict(namespace, name, spec))}
 
 @kopf.on.update(GROUP, VERSION, PspV1Beta1.plural)
 def on_psp_update(namespace: str, name: str, spec: dict, status: dict, logger, **_):
@@ -306,11 +300,7 @@ def on_psp_update(namespace: str, name: str, spec: dict, status: dict, logger, *
         raise kopf.PermanentError(
             "was not able to determine the PSP ID for update") from error
 
-    identifier = update_psp(
-        logger,
-        identifier,
-        **PspV1Beta1.spec_to_request_dict(namespace, name, spec)
-    )
+    identifier = update_psp(logger, identifier, PspV1Beta1.spec_to_request_dict(namespace, name, spec))
 
     return {PSP_ID_KEY: identifier}
 
@@ -327,10 +317,7 @@ def on_psp_delete(status: dict, logger, **_):
 
 @kopf.on.create(GROUP, VERSION, MaintenanceWindowV1Beta1.plural)
 def on_mw_create(name: str, spec: dict, logger, **_):
-    identifier = create_mw(
-        logger,
-        **MaintenanceWindowV1Beta1.spec_to_request_dict(name, spec)
-    )
+    identifier = create_mw(logger, MaintenanceWindowV1Beta1.spec_to_request_dict(name, spec))
 
     return {MW_ID_KEY: identifier}
 
@@ -346,19 +333,10 @@ def on_mw_update(name: str, spec: dict, status: dict, logger, diff: dict, **_):
     if type_changed(diff):
         logger.info('maintenance window type changed, need to delete and recreate')
         delete_mw(logger, identifier)
-
-        identifier = create_mw(
-            logger,
-            **update_payload
-        )
+        identifier = create_mw(logger, update_payload)
     else:
         update_payload.pop('type', None) # update does not accept type parameter
-
-        identifier = update_mw(
-            logger,
-            identifier,
-            **update_payload
-        )
+        identifier = update_mw(logger, identifier, update_payload)
 
     return {MW_ID_KEY: identifier}
 
@@ -397,7 +375,7 @@ def on_ac_update(name: str, spec: dict, status: dict, logger, diff: dict, **_):
 
         identifier = create_ac(
             logger,
-            **update_payload
+            update_payload
         )
     else:
         update_payload.pop('type', None) # update does not accept type parameter
@@ -405,7 +383,7 @@ def on_ac_update(name: str, spec: dict, status: dict, logger, diff: dict, **_):
         identifier = update_ac(
             logger,
             identifier,
-            **update_payload
+            update_payload
         )
 
     return {AC_ID_KEY: identifier}
