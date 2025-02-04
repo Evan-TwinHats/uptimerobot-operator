@@ -58,164 +58,69 @@ def init_uptimerobot_api(logger):
         logger.error('failed to create UptimeRobot API')
         raise kopf.PermanentError(error)
 
-
-def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, id=None):
-    isUpdate = id != None
-   
-    request_dict = MonitorV1Beta1.spec_to_request_dict(namespace, name, spec)
-    resp = uptime_robot.edit_monitor(id, **request_dict) if isUpdate else uptime_robot.new_monitor(**request_dict)
-
+def check_response(resp, logger, thing, action, id = None, jsonName = None):
+    jsonName = jsonName if jsonName else thing.lower()
     if resp['stat'] == 'ok':
-        id = resp['monitor']['id']
+        if jsonName in resp:
+            id = resp[jsonName]['id']
         logger.info(
-            'monitor with ID {0} has been {1} successfully'.format(id, 'updated' if isUpdate else 'created'))
-        return id
-
-    raise kopf.PermanentError(f'failed to create/update monitor {name}: {resp["error"]}')
-
-def delete_monitor(logger, id):
-    resp = uptime_robot.delete_monitor(id)
-    if resp['stat'] == 'ok':
-        logger.info(
-            f'monitor with ID {id} has been deleted successfully')
+            f'{thing} with ID {id} has been {action}d successfully')
     else:
         if resp['error']['type'] == 'not_found':
             logger.info(
-                f'monitor with ID {id} has already been deleted')
+                f'Could not {action} {thing} with ID {id} because does not exist.')
             return
 
+        idDesc = f" {id}" if Id else ""
         raise kopf.PermanentError(
-            f'failed to delete monitor with ID {id}: {resp["error"]}')
+            f'failed to {action} {thing}{idDesc}: {resp["error"]}')
+
+def create_monitor(namespace: str, name: str, spec: dict, logger):  
+    request_dict = MonitorV1Beta1.spec_to_request_dict(namespace, name, spec)
+    check_response(uptime_robot.new_monitor(**request_dict), logger, "monitor", "create", name)   
+
+def update_monitor(namespace: str, name: str, spec: dict, logger, id): 
+    request_dict = MonitorV1Beta1.spec_to_request_dict(namespace, name, spec)
+    check_response(uptime_robot.edit_monitor(id, **request_dict), logger, "monitor", "update", id)
+
+def delete_monitor(logger, id):
+    check_response(uptime_robot.delete_monitor(id), logger, "monitor", "delete", id)
 
 def create_psp(logger, **kwargs):
     resp = uptime_robot.new_psp(
         type='1',
         **{k:str(v) for k,v in kwargs.items()}
         )
+    check_response(resp, logger, "PSP", "create")
+    
+def update_psp(logger, id, **kwargs):
+    resp = uptime_robot.edit_psp(id, **{k:str(v) for k,v in kwargs.items()} )
+    check_response(resp, logger, "PSP", "update")
 
-    if resp['stat'] == 'ok':
-        identifier = resp['psp']['id']
-        logger.info(
-            f'PSP with ID {identifier} has been created successfully')
-        return identifier
-
-    raise kopf.PermanentError(f'failed to create PSP: {resp["error"]}')
-
-
-def update_psp(logger, identifier, **kwargs):
-    resp = uptime_robot.edit_psp(
-        identifier,
-        **{k:str(v) for k,v in kwargs.items()}
-        )
-
-    if resp['stat'] == 'ok':
-        identifier = resp['psp']['id']
-        logger.info(
-            f'PSP with ID {identifier} has been updated successfully')
-        return identifier
-
-    raise kopf.PermanentError(f'failed to update PSP with ID {identifier}: {resp["error"]}')
-
-
-def delete_psp(logger, identifier):
-    resp = uptime_robot.delete_psp(identifier)
-    if resp['stat'] == 'ok':
-        logger.info(
-            f'PSP with ID {identifier} has been deleted successfully')
-    else:
-        if resp['error']['type'] == 'not_found':
-            logger.info(
-                f'PSP with ID {identifier} has already been deleted')
-            return
-
-        raise kopf.PermanentError(
-            f'failed to delete PSP with ID {identifier}: {resp["error"]}')
+def delete_psp(logger, id):
+    check_response(uptime_robot.delete_psp(id), logger, "PSP", "delete")
 
 def create_mw(logger, **kwargs):
-    resp = uptime_robot.new_m_window(
-        **{k:str(v) for k,v in kwargs.items()}
-        )
+    resp = uptime_robot.new_m_window(**{k:str(v) for k,v in kwargs.items()})
+    check_response(resp, logger, "MW", "create", jsonName="mwindow")
 
-    if resp['stat'] == 'ok':
-        identifier = resp['mwindow']['id']
-        logger.info(
-            f'MW with ID {identifier} has been created successfully')
-        return identifier
+def update_mw(logger, id, **kwargs):
+    resp = uptime_robot.edit_m_window(id, **{k:str(v) for k,v in kwargs.items()})
+    check_response(resp, logger, "MW", "update", id, "mwindow")
 
-    raise kopf.PermanentError(f'failed to create MW: {resp["error"]}')
-
-
-def update_mw(logger, identifier, **kwargs):
-    resp = uptime_robot.edit_m_window(
-        identifier,
-        **{k:str(v) for k,v in kwargs.items()}
-        )
-
-    if resp['stat'] == 'ok':
-        identifier = resp['mwindow']['id']
-        logger.info(
-            f'MW with ID {identifier} has been updated successfully')
-        return identifier
-
-    raise kopf.PermanentError(f'failed to update MW with ID {identifier}: {resp["error"]}')
-
-
-def delete_mw(logger, identifier):
-    resp = uptime_robot.delete_m_window(identifier)
-    if resp['stat'] == 'ok':
-        logger.info(
-            f'MW with ID {identifier} has been deleted successfully')
-    else:
-        if resp['error']['type'] == 'not_found':
-            logger.info(
-                f'MW with ID {identifier} has already been deleted')
-            return
-
-        raise kopf.PermanentError(
-            f'failed to delete MW with ID {identifier}: {resp["error"]}')
+def delete_mw(logger, id):
+    check_response(uptime_robot.delete_m_window(id), logger, "MW", "delete", id)
 
 def create_ac(logger, **kwargs):
-    resp = uptime_robot.new_alert_contact(
-        **{k:str(v) for k,v in kwargs.items()}
-        )
+    resp = uptime_robot.new_alert_contact(**{k:str(v) for k,v in kwargs.items()})
+    check_response(resp, logger, "alert contact", "delete", id, "alertcontact")
 
-    if resp['stat'] == 'ok':
-        identifier = resp['alertcontact']['id']
-        logger.info(
-            f'AC with ID {identifier} has been created successfully')
-        return identifier
+def update_ac(logger, id, **kwargs):
+    resp = uptime_robot.edit_alert_contact(str(id), **{k:str(v) for k,v in kwargs.items()} )
+    check_response(resp, logger, "alert contact", "update", id, "alert_contact")
 
-    raise kopf.PermanentError(f'failed to create AC: {resp["error"]}')
-
-
-def update_ac(logger, identifier, **kwargs):
-    resp = uptime_robot.edit_alert_contact(
-        str(identifier),
-        **{k:str(v) for k,v in kwargs.items()}
-        )
-
-    if resp['stat'] == 'ok':
-        identifier = resp['alert_contact']['id']
-        logger.info(
-            f'AC with ID {identifier} has been updated successfully')
-        return identifier
-
-    raise kopf.PermanentError(f'failed to update AC with ID {identifier}: {resp["error"]}')
-
-
-def delete_ac(logger, identifier):
-    resp = uptime_robot.delete_alert_contact(str(identifier))
-    if resp['stat'] == 'ok':
-        logger.info(
-            f'AC with ID {identifier} has been deleted successfully')
-    else:
-        if resp['error']['type'] == 'not_found':
-            logger.info(
-                f'AC with ID {identifier} has already been deleted')
-            return
-
-        raise kopf.PermanentError(
-            f'failed to delete AC with ID {identifier}: {resp["error"]}')
+def delete_ac(logger, id):
+    check_response(uptime_robot.delete_alert_contact(str(id)), logger, "alert contact", "update", id)
 
 def type_changed(diff: list):
     try:
@@ -226,43 +131,22 @@ def type_changed(diff: list):
         return False
     return False
 
+def get_status_value(status: dict, keyName, updateEvent, createEvent):
+    return (status[updateEvent.__name__][keyName] if updateEvent.__name__ in status 
+            else status[createEvent.__name__][keyName] if createEvent.__name__ in status 
+            else -1 )
 
-# TODO merge get_identifier functions
 def get_identifier(status: dict):
-    if on_update.__name__ in status:
-        return status[on_update.__name__][MONITOR_ID_KEY]
-
-    if on_create.__name__ in status:
-        return status[on_create.__name__][MONITOR_ID_KEY]
-
-    raise KeyError(MONITOR_ID_KEY)
-
+    return get_status_value(status, MONITOR_ID_KEY, on_update, on_create)
+    
 def get_psp_identifier(status: dict):
-    if on_psp_update.__name__ in status:
-        return status[on_psp_update.__name__][PSP_ID_KEY]
-
-    if on_psp_create.__name__ in status:
-        return status[on_psp_create.__name__][PSP_ID_KEY]
-
-    raise KeyError(PSP_ID_KEY)
+    return get_status_value(status, PSP_ID_KEY, on_psp_update, on_psp_create)
 
 def get_mw_identifier(status: dict):
-    if on_mw_update.__name__ in status:
-        return status[on_mw_update.__name__][MW_ID_KEY]
-
-    if on_mw_create.__name__ in status:
-        return status[on_mw_create.__name__][MW_ID_KEY]
-
-    raise KeyError(MW_ID_KEY)
+    return get_status_value(status, MW_ID_KEY, on_mw_update, on_mw_create)
 
 def get_ac_identifier(status: dict):
-    if on_ac_update.__name__ in status:
-        return status[on_ac_update.__name__][AC_ID_KEY]
-
-    if on_ac_create.__name__ in status:
-        return status[on_ac_create.__name__][AC_ID_KEY]
-
-    raise KeyError(AC_ID_KEY)
+    return get_status_value(status, AC_ID_KEY, on_ac_update, on_ac_create)
 
 @kopf.on.startup()
 def startup(logger, **_):
@@ -361,49 +245,48 @@ def formatUrl(monitor_body: dict, host):
 
 def set_crd_defaults(namespace: str, monitor_name: str, monitor_body: dict, logger):
     updated_body = {k:v for k,v in monitor_body.items()}
-    logger.info(f"Setting monitor defaults for {monitor_name}")
+    # logger.info(f"Setting monitor defaults for {monitor_name}")
     
     formatUrl(updated_body, updated_body['url'])
 
     if 'customHttpHeaders' not in updated_body and config.DEFAULT_HEADERS != {}:
-        # logger.info('CustomHttpHeaders not set on monitor. Using defaults: ' + json.dumps(config.DEFAULT_HEADERS))
+        logger.info('CustomHttpHeaders not set on monitor. Using user-define defaults.')
         updated_body['customHttpHeaders'] = config.DEFAULT_HEADERS
 
     k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, 
         MonitorV1Beta1.construct_k8s_ur_monitor_body(namespace, monitor_name, **updated_body))
     return updated_body
-            
+
 @kopf.on.create(GROUP, VERSION, PLURAL)
 def on_create(namespace: str, name: str, spec: dict, logger, **_):
     logger.info(f"Monitor created: {name}")
     spec = set_crd_defaults(namespace, name, spec, logger)
-    return {MONITOR_ID_KEY: create_or_update_monitor(namespace, name, spec, logger)}
+    return {MONITOR_ID_KEY: create_monitor(namespace, name, spec, logger)}
 
 @kopf.on.update(GROUP, VERSION, PLURAL)
 def on_update(namespace: str, name: str, spec: dict, status: dict, diff: list, logger, **_):
     logger.info(f"Monitor updated: {name}")
     spec = set_crd_defaults(namespace, name, spec, logger)
-    try:
-        identifier = get_identifier(status)
-    except KeyError as error:
+    identifier = get_identifier(status)
+    if identifier == -1:
         raise kopf.PermanentError(
             "was not able to determine the monitor ID for update") from error
     if type_changed(diff):
         logger.info('monitor type changed, need to delete and recreate')
         delete_monitor(logger, identifier)
-        return {MONITOR_ID_KEY: create_or_update_monitor(namespace, name, spec, logger)}
+        return {MONITOR_ID_KEY: create_monitor(namespace, name, spec, logger)}
     else:
-        return {MONITOR_ID_KEY: create_or_update_monitor(namespace, name, spec, logger, identifier)}
+        return {MONITOR_ID_KEY: update_monitor(namespace, name, spec, logger, identifier)}
 
     
 @kopf.on.delete(GROUP, VERSION, PLURAL)
 def on_delete(status: dict, logger, **_):
-    try:  # making sure to catch all exceptions here to prevent blocking deletion
-        identifier = get_identifier(status)
-        delete_monitor(logger, identifier)
-    except KeyError as error:
+    identifier = get_identifier(status)
+    if identifier == -1:
         raise kopf.PermanentError(
             "was not able to determine the monitor ID for deletion") from error
+    try:
+        delete_monitor(logger, identifier)
     except Exception as error:
         raise kopf.PermanentError(f"deleting monitor failed: {error}") from error
 
@@ -418,9 +301,8 @@ def on_psp_create(namespace: str, name: str, spec: dict, logger, **_):
 
 @kopf.on.update(GROUP, VERSION, PspV1Beta1.plural)
 def on_psp_update(namespace: str, name: str, spec: dict, status: dict, logger, **_):
-    try:
-        identifier = get_psp_identifier(status)
-    except KeyError as error:
+    identifier = get_psp_identifier(status)
+    if identifier == -1:
         raise kopf.PermanentError(
             "was not able to determine the PSP ID for update") from error
 
@@ -434,12 +316,12 @@ def on_psp_update(namespace: str, name: str, spec: dict, status: dict, logger, *
 
 @kopf.on.delete(GROUP, VERSION, PspV1Beta1.plural)
 def on_psp_delete(status: dict, logger, **_):
-    try:  # making sure to catch all exceptions here to prevent blocking deletion
-        identifier = get_psp_identifier(status)
-        delete_psp(logger, identifier)
-    except KeyError as error:
+    identifier = get_psp_identifier(status)
+    if identifier == -1:
         raise kopf.PermanentError(
             "was not able to determine the PSP ID for deletion") from error
+    try:
+        delete_psp(logger, identifier)
     except Exception as error:
         raise kopf.PermanentError(f"deleting PSP failed: {error}") from error
 
@@ -454,9 +336,8 @@ def on_mw_create(name: str, spec: dict, logger, **_):
 
 @kopf.on.update(GROUP, VERSION, MaintenanceWindowV1Beta1.plural)
 def on_mw_update(name: str, spec: dict, status: dict, logger, diff: dict, **_):
-    try:
-        identifier = get_mw_identifier(status)
-    except KeyError as error:
+    identifier = get_mw_identifier(status)
+    if identifier == -1:
         raise kopf.PermanentError(
             "was not able to determine the MW ID for update") from error
 
@@ -483,12 +364,12 @@ def on_mw_update(name: str, spec: dict, status: dict, logger, diff: dict, **_):
 
 @kopf.on.delete(GROUP, VERSION, MaintenanceWindowV1Beta1.plural)
 def on_mw_delete(status: dict, logger, **_):
-    try:  # making sure to catch all exceptions here to prevent blocking deletion
-        identifier = get_mw_identifier(status)
-        delete_mw(logger, identifier)
-    except KeyError as error:
+    identifier = get_mw_identifier(status)
+    if identifier == -1:
         raise kopf.PermanentError(
             "was not able to determine the MW ID for deletion") from error
+    try:
+        delete_mw(logger, identifier)
     except Exception as error:
         raise kopf.PermanentError(f"deleting MW failed: {error}") from error
 
@@ -503,9 +384,8 @@ def on_ac_create(name: str, spec: dict, logger, **_):
 
 @kopf.on.update(GROUP, VERSION, AlertContactV1Beta1.plural)
 def on_ac_update(name: str, spec: dict, status: dict, logger, diff: dict, **_):
-    try:
-        identifier = get_ac_identifier(status)
-    except KeyError as error:
+    identifier = get_ac_identifier(status)
+    if identifier == -1:
         raise kopf.PermanentError(
             "was not able to determine the AC ID for update") from error
 
@@ -532,11 +412,11 @@ def on_ac_update(name: str, spec: dict, status: dict, logger, diff: dict, **_):
 
 @kopf.on.delete(GROUP, VERSION, AlertContactV1Beta1.plural)
 def on_ac_delete(status: dict, logger, **_):
-    try:  # making sure to catch all exceptions here to prevent blocking deletion
-        identifier = get_ac_identifier(status)
-        delete_ac(logger, identifier)
-    except KeyError as error:
+    identifier = get_ac_identifier(status)
+    if identifier == -1:
         raise kopf.PermanentError(
             "was not able to determine the AC ID for deletion") from error
+    try: 
+        delete_ac(logger, identifier)
     except Exception as error:
         raise kopf.PermanentError(f"deleting AC failed: {error}") from error
