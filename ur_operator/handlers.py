@@ -61,12 +61,7 @@ def init_uptimerobot_api(logger):
 
 def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, id=None):
     isUpdate = id != None
-
-    specDict = {k: v for k, v in spec.items()}
-    if 'path' in specDict and specDict['type'] in ['HTTP','HTTPS','KEYWORD']:
-            specDict['url'] = specDict['url'] + specDict.pop('path')
-    
-    
+   
     request_dict = MonitorV1Beta1.spec_to_request_dict(namespace, name, specDict)
     resp = uptime_robot.edit_monitor(id, **request_dict) if isUpdate else uptime_robot.new_monitor(**request_dict)
 
@@ -76,11 +71,7 @@ def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, id=N
             'monitor with ID {0} has been {1} successfully'.format(id, 'updated' if isUpdate else 'created'))
         return id
 
-    # if resp["error"]["type"] == 'already_exists':
-    #     logger.info('Monitor already exists. Overwriting...')
-    #     return create_or_update_monitor(namespace, name, spec, logger)
-    # idStr = f' with ID {id}' if isUpdate else ''
-    raise kopf.PermanentError(f'failed to create monitor {name}: {resp["error"]}')
+    raise kopf.PermanentError(f'failed to create/update monitor {name}: {resp["error"]}')
 
 def delete_monitor(logger, id):
     resp = uptime_robot.delete_monitor(id)
@@ -309,7 +300,6 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
         sha = hashlib.sha256()
         sha.update(f"{ingressName}{host}{path}{port}".encode())
         digest = sha.hexdigest()[:8]
-        #logger.info(f'Generated monitor name {host}-{digest} for rule {rule}')
         return f"{host}-{digest}"
         
     if config.DISABLE_INGRESS_HANDLING:
@@ -339,32 +329,12 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
             logger.info('deleted obsolete UptimeRobotMonitor object')
 
     for rule in rules:
-        if 'host' not in rule:
-            continue
-
         host = rule['host']
-        # Filter out wildcard, unqualified, and excluded domains
-        if rule['host'].startswith('*') or '.' not in rule['host'] or rule['host'].endswith(config.EXCLUDED_DOMAINS):
-            if host is not None:
-                logger.info(f'Excluding rule for {host} as wildcard, unqualified, or excluded.')            
-            continue
-
-        # if 'type' not in monitor_spec:
-        #     logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
-        #     monitor_spec['type'] = config.DEFAULT_MONITOR_TYPE
-
-        # if monitor_spec['type'] == 'HTTP':
-        #     monitor_spec['url'] = f"http://{host}"
-        # elif monitor_spec['type'] in ['HTTPS', 'KEYWORD']:
-        #     monitor_spec['url'] = f"https://{host}"
-        # else:
-        #     monitor_spec['url'] = host
         monitor_name = generate_monitor_name(rule)
         monitor_body = MonitorV1Beta1.construct_k8s_ur_monitor_body(
             namespace, ingressName=monitor_name, **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
         kopf.adopt(monitor_body)
         
-        #logger.info(f'Retrieved existing CRDs: {crds}')
         if any(match_crd_to_rule(rule, crd) for crd in crds):
             k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, monitor_body)
             logger.info(f'Updated UptimeRobotMonitor object for URL {host}')
@@ -386,9 +356,9 @@ def set_crd_defaults(namespace: str, monitor_name: str, monitor_body: dict, logg
         monitor_body['url'] = host
 
     default_headers = config.DEFAULT_HEADERS
-    if 'customHttpHeaders' not in monitor_body and default_headers != '':
-        logger.info('CustomHttpHeaders not set on monitor. Using defaults: ' + default_headers)
-        monitor_body['customHttpHeaders'] = '{ "foo": bar, "foo2": bar2 }'
+    if 'customHttpHeaders' not in monitor_body and default_headers != {}:
+        logger.info('CustomHttpHeaders not set on monitor. Using defaults: ' + json.dumps(default_headers))
+        monitor_body['customHttpHeaders'] = default_headers
 
     k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, monitor_body)
             
