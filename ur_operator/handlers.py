@@ -62,7 +62,7 @@ def init_uptimerobot_api(logger):
 def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, id=None):
     isUpdate = id != None
    
-    request_dict = MonitorV1Beta1.spec_to_request_dict(namespace, name, specDict)
+    request_dict = MonitorV1Beta1.spec_to_request_dict(namespace, name, spec)
     resp = uptime_robot.edit_monitor(id, **request_dict) if isUpdate else uptime_robot.new_monitor(**request_dict)
 
     if resp['stat'] == 'ok':
