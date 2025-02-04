@@ -387,8 +387,8 @@ def set_crd_defaults(namespace: str, monitor_name: str, monitor_body: dict, logg
 
     default_headers = config.DEFAULT_HEADERS
     if 'customHttpHeaders' not in monitor_body and default_headers != '':
-        logger.info(f'CustomHttpHeaders not set on monitor. Using defaults: {default_headers}')
-        monitor_body['customHttpHeaders'] = default_headers
+        logger.info('CustomHttpHeaders not set on monitor. Using defaults: ' + default_headers)
+        monitor_body['customHttpHeaders'] = '{ "foo": bar, "foo2": bar2 }'
 
     k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, monitor_body)
             
