@@ -1,5 +1,6 @@
 import os
 import json
+from crds.constants import GROUP
 
 class Config:
     @property
@@ -21,3 +22,7 @@ class Config:
     @property
     def UPTIMEROBOT_API_KEY(self):
         return os.environ['UPTIMEROBOT_API_KEY']
+
+    @property
+    def GROUP(self):
+        return GROUP
