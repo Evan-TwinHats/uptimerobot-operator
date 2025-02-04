@@ -355,17 +355,18 @@ def formatUrl(monitor_body: dict, host):
         monitor_body['url'] = host
 
 def set_crd_defaults(namespace: str, monitor_name: str, monitor_body: dict, logger):
+    updated_body = {k:v for k,v in monitor_body.items()}
     logger.info(f"Setting monitor defaults for {monitor_name}")
     if 'type' not in monitor_body:
             logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
-            monitor_body['type'] = config.DEFAULT_MONITOR_TYPE
+            updated_body['type'] = config.DEFAULT_MONITOR_TYPE
 
-    formatUrl(monitor_body, monitor_body['url'])
+    formatUrl(updated_body, updated_body['url'])
 
     default_headers = config.get_DEFAULT_HEADERS(logger)
-    if 'customHttpHeaders' not in monitor_body and default_headers != {}:
+    if 'customHttpHeaders' not in updated_body and default_headers != {}:
         logger.info('CustomHttpHeaders not set on monitor. Using defaults: ' + json.dumps(default_headers))
-        monitor_body['customHttpHeaders'] = default_headers
+        updated_body['customHttpHeaders'] = default_headers
 
     k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, monitor_body)
             
