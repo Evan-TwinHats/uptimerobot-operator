@@ -357,7 +357,7 @@ def formatUrl(monitor_body: dict, host):
 def set_crd_defaults(namespace: str, monitor_name: str, monitor_body: dict, logger):
     updated_body = {k:v for k,v in monitor_body.items()}
     logger.info(f"Setting monitor defaults for {monitor_name}")
-    if 'type' not in monitor_body:
+    if 'type' not in updated_body:
             logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
             updated_body['type'] = config.DEFAULT_MONITOR_TYPE
 
@@ -368,7 +368,8 @@ def set_crd_defaults(namespace: str, monitor_name: str, monitor_body: dict, logg
         logger.info('CustomHttpHeaders not set on monitor. Using defaults: ' + json.dumps(default_headers))
         updated_body['customHttpHeaders'] = default_headers
 
-    k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, monitor_body)
+    k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, 
+        MonitorV1Beta1.construct_k8s_ur_monitor_body(namespace, monitor_name, **updated_body))
             
 @kopf.on.create(GROUP, VERSION, PLURAL)
 def on_create(namespace: str, name: str, spec: dict, logger, **_):
