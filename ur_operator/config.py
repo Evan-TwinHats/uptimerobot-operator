@@ -10,7 +10,6 @@ class Config:
     def EXCLUDED_DOMAINS(self):
         return tuple(os.getenv('URO_EXCLUDED_DOMAINS', 'default.local').split(","))
 
-    @property
     def DEFAULT_HEADERS(self):
         return json.loads(os.getenv('URO_DEFAULT_HEADERS', {}))
 
