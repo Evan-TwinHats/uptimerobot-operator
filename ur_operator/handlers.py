@@ -371,17 +371,18 @@ def set_crd_defaults(namespace: str, monitor_name: str, monitor_body: dict, logg
 
     k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, 
         MonitorV1Beta1.construct_k8s_ur_monitor_body(namespace, monitor_name, **updated_body))
+    return updated_body
             
 @kopf.on.create(GROUP, VERSION, PLURAL)
 def on_create(namespace: str, name: str, spec: dict, logger, **_):
     logger.info(f"Monitor created: {name}")
-    set_crd_defaults(namespace, name, spec, logger)
+    spec = set_crd_defaults(namespace, name, spec, logger)
     return {MONITOR_ID_KEY: create_or_update_monitor(namespace, name, spec, logger)}
 
 @kopf.on.update(GROUP, VERSION, PLURAL)
 def on_update(namespace: str, name: str, spec: dict, status: dict, diff: list, logger, **_):
     logger.info(f"Monitor updated: {name}")
-    set_crd_defaults(namespace, name, spec, logger)
+    spec = set_crd_defaults(namespace, name, spec, logger)
     try:
         identifier = get_identifier(status)
     except KeyError as error:
