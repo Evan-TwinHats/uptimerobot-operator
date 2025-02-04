@@ -330,10 +330,11 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
 
     for rule in rules:
         host = rule['host']
+
+        formatUrl(monitor_spec, host)
         monitor_name = generate_monitor_name(rule)
         monitor_body = MonitorV1Beta1.construct_k8s_ur_monitor_body(
             namespace, ingressName=monitor_name, **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
-        formatUrl(monitor_body, host)
         kopf.adopt(monitor_body)
         
         if any(match_crd_to_rule(rule, crd) for crd in crds):
