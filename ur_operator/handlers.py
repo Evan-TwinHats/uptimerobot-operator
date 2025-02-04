@@ -331,12 +331,16 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
     for rule in rules:
         host = rule['host']
 
+        if 'type' not in monitor_spec:
+            logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
+            monitor_spec['type'] = config.DEFAULT_MONITOR_TYPE
+
         formatUrl(monitor_spec, host)
         monitor_name = generate_monitor_name(rule)
         monitor_body = MonitorV1Beta1.construct_k8s_ur_monitor_body(
             namespace, ingressName=monitor_name, **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
         kopf.adopt(monitor_body)
-        
+
         if any(match_crd_to_rule(rule, crd) for crd in crds):
             k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, monitor_body)
             logger.info(f'Updated UptimeRobotMonitor object for URL {host}')
@@ -358,16 +362,12 @@ def formatUrl(monitor_body: dict, host):
 def set_crd_defaults(namespace: str, monitor_name: str, monitor_body: dict, logger):
     updated_body = {k:v for k,v in monitor_body.items()}
     logger.info(f"Setting monitor defaults for {monitor_name}")
-    if 'type' not in updated_body:
-            logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
-            updated_body['type'] = config.DEFAULT_MONITOR_TYPE
-
+    
     formatUrl(updated_body, updated_body['url'])
 
-    default_headers = config.DEFAULT_HEADERS
-    if 'customHttpHeaders' not in updated_body and default_headers != {}:
-        logger.info('CustomHttpHeaders not set on monitor. Using defaults: ' + json.dumps(default_headers))
-        updated_body['customHttpHeaders'] = default_headers
+    if 'customHttpHeaders' not in updated_body and config.DEFAULT_HEADERS != {}:
+        # logger.info('CustomHttpHeaders not set on monitor. Using defaults: ' + json.dumps(config.DEFAULT_HEADERS))
+        updated_body['customHttpHeaders'] = config.DEFAULT_HEADERS
 
     k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, 
         MonitorV1Beta1.construct_k8s_ur_monitor_body(namespace, monitor_name, **updated_body))
