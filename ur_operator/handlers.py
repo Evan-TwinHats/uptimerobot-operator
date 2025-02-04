@@ -333,6 +333,7 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
         monitor_name = generate_monitor_name(rule)
         monitor_body = MonitorV1Beta1.construct_k8s_ur_monitor_body(
             namespace, ingressName=monitor_name, **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
+        formatUrl(monitor_body, host)
         kopf.adopt(monitor_body)
         
         if any(match_crd_to_rule(rule, crd) for crd in crds):
@@ -341,20 +342,25 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
         else:
             k8s.create_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_body)
             logger.info(f'Created UptimeRobotMonitor object for URL {host}')
-        
-def set_crd_defaults(namespace: str, monitor_name: str, monitor_body: dict, logger):
-    logger.info(f"Setting monitor defaults for {monitor_name}")
-    if 'type' not in monitor_body:
-            logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
-            monitor_body['type'] = config.DEFAULT_MONITOR_TYPE
 
-    host = rule['host']
+def formatUrl(monitor_body: dict, host):
+    if 'url' in monitor_body and '://' in monitor_body['url']:
+        return
+    
     if monitor_body['type'] == 'HTTP':
         monitor_body['url'] = f"http://{host}"
     elif monitor_body['type'] in ['HTTPS', 'KEYWORD']:
         monitor_body['url'] = f"https://{host}"
     else:
         monitor_body['url'] = host
+
+def set_crd_defaults(namespace: str, monitor_name: str, monitor_body: dict, logger):
+    logger.info(f"Setting monitor defaults for {monitor_name}")
+    if 'type' not in monitor_body:
+            logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
+            monitor_body['type'] = config.DEFAULT_MONITOR_TYPE
+
+    formatUrl(monitor_body, monitor_body['url'])
 
     default_headers = config.get_DEFAULT_HEADERS(logger)
     if 'customHttpHeaders' not in monitor_body and default_headers != {}:
