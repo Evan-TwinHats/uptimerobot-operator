@@ -260,6 +260,9 @@ class MonitorV1Beta1:
         request_dict = {camel_to_snake_case(k): v for k, v in spec.items()}
         request_dict['friendly_name'] = request_dict.get('friendly_name', name)
         request_dict['type'] = MonitorType[spec['type']].value
+
+        if 'path' in request_dict and request_dict['type'] in ['HTTP','HTTPS','KEYWORD']:
+            request_dict['url'] = request_dict['url'] + request_dict.pop('path')
             
         if 'http_auth_secret' in request_dict:
             secret = k8s.get_secret(namespace, request_dict['http_auth_secret'])
