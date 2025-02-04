@@ -66,10 +66,6 @@ def create_or_update_monitor(namespace: str, name: str, spec: dict, logger, id=N
     if 'path' in specDict and specDict['type'] in ['HTTP','HTTPS','KEYWORD']:
             specDict['url'] = specDict['url'] + specDict.pop('path')
     
-    default_headers = config.DEFAULT_HEADERS
-    if 'customHttpHeaders' not in specDict and default_headers != '':
-        logger.info(f'CustomHttpHeaders not set on monitor. Using defaults: {default_headers}')
-        specDictv['customHttpHeaders'] = default_headers
     
     request_dict = MonitorV1Beta1.spec_to_request_dict(namespace, name, specDict)
     resp = uptime_robot.edit_monitor(id, **request_dict) if isUpdate else uptime_robot.new_monitor(**request_dict)
@@ -298,7 +294,6 @@ def on_ingress_update(name: str, namespace: str, annotations: dict, spec: dict, 
     create_or_update_crds(name, namespace, annotations, spec, logger)
 
 def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, spec: dict, logger):
-    
     def match_crd_to_rule(rule: dict, crd:dict):
         return generate_monitor_name(rule) == crd['metadata']['name'] 
 
@@ -354,16 +349,16 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
                 logger.info(f'Excluding rule for {host} as wildcard, unqualified, or excluded.')            
             continue
 
-        if 'type' not in monitor_spec:
-            logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
-            monitor_spec['type'] = config.DEFAULT_MONITOR_TYPE
+        # if 'type' not in monitor_spec:
+        #     logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
+        #     monitor_spec['type'] = config.DEFAULT_MONITOR_TYPE
 
-        if monitor_spec['type'] == 'HTTP':
-            monitor_spec['url'] = f"http://{host}"
-        elif monitor_spec['type'] in ['HTTPS', 'KEYWORD']:
-            monitor_spec['url'] = f"https://{host}"
-        else:
-            monitor_spec['url'] = host
+        # if monitor_spec['type'] == 'HTTP':
+        #     monitor_spec['url'] = f"http://{host}"
+        # elif monitor_spec['type'] in ['HTTPS', 'KEYWORD']:
+        #     monitor_spec['url'] = f"https://{host}"
+        # else:
+        #     monitor_spec['url'] = host
         monitor_name = generate_monitor_name(rule)
         monitor_body = MonitorV1Beta1.construct_k8s_ur_monitor_body(
             namespace, ingressName=monitor_name, **MonitorV1Beta1.annotations_to_spec_dict(monitor_spec))
@@ -377,16 +372,36 @@ def create_or_update_crds(ingressName: str, namespace: str, annotations: dict, s
             k8s.create_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_body)
             logger.info(f'Created UptimeRobotMonitor object for URL {host}')
         
-        
+def set_crd_defaults(namespace: str, monitor_name: str, monitor_body: dict, logger):
+    logger.info(f"Setting monitor defaults for {monitor_name}")
+    if 'type' not in monitor_body:
+            logger.info(f"Type not specified. Defaulting to {config.DEFAULT_MONITOR_TYPE}")
+            monitor_body['type'] = config.DEFAULT_MONITOR_TYPE
+
+    if monitor_body['type'] == 'HTTP':
+        monitor_body['url'] = f"http://{host}"
+    elif monitor_body['type'] in ['HTTPS', 'KEYWORD']:
+        monitor_body['url'] = f"https://{host}"
+    else:
+        monitor_body['url'] = host
+
+    default_headers = config.DEFAULT_HEADERS
+    if 'customHttpHeaders' not in monitor_body and default_headers != '':
+        logger.info(f'CustomHttpHeaders not set on monitor. Using defaults: {default_headers}')
+        monitor_body['customHttpHeaders'] = default_headers
+
+    k8s.update_k8s_crd_obj_with_body(MonitorV1Beta1, namespace, monitor_name, monitor_body)
             
 @kopf.on.create(GROUP, VERSION, PLURAL)
 def on_create(namespace: str, name: str, spec: dict, logger, **_):
     logger.info(f"Monitor created: {name}")
+    set_crd_defaults(namespace, name, spec, logger)
     return {MONITOR_ID_KEY: create_or_update_monitor(namespace, name, spec, logger)}
 
 @kopf.on.update(GROUP, VERSION, PLURAL)
 def on_update(namespace: str, name: str, spec: dict, status: dict, diff: list, logger, **_):
     logger.info(f"Monitor updated: {name}")
+    set_crd_defaults(namespace, name, spec, logger)
     try:
         identifier = get_identifier(status)
     except KeyError as error:
