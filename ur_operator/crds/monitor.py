@@ -212,7 +212,7 @@ class MonitorV1Beta1:
                 additional_printer_columns=[
                     k8s_client.V1CustomResourceColumnDefinition(
                         description = 'Friendly Name',
-                        json_path = '.metadata.ownerReferences[0].friendlyName',
+                        json_path = '.spec.friendlyName',
                         name = 'Friendly Name',
                         type = 'string'
                     ),
