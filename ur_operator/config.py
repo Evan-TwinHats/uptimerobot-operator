@@ -10,12 +10,9 @@ class Config:
     def EXCLUDED_DOMAINS(self):
         return tuple(os.getenv('URO_EXCLUDED_DOMAINS', 'default.local').split(","))
 
-    def get_DEFAULT_HEADERS(self, logger):
-        headers = os.getenv('URO_DEFAULT_HEADERS', '{}')
-        logger.info(f"Retrieved headers string: {headers}")
-        headersObj = json.loads(headers)
-        logger.info(f"Deserialized to obj: {headersObj}")
-        return headersObj
+    @property
+    def DEFAULT_HEADERS(self):
+        return json.loads(os.getenv('URO_DEFAULT_HEADERS', '{}'))
 
     @property
     def DEFAULT_MONITOR_TYPE(self):
