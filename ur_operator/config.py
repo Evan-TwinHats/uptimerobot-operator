@@ -1,4 +1,5 @@
 import os
+import json
 
 class Config:
     @property
@@ -11,7 +12,7 @@ class Config:
 
     @property
     def DEFAULT_HEADERS(self):
-        return os.getenv('URO_DEFAULT_HEADERS', '')
+        return json.loads(os.getenv('URO_DEFAULT_HEADERS', '{}'))
 
     @property
     def DEFAULT_MONITOR_TYPE(self):
