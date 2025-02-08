@@ -5,12 +5,15 @@ uptimeRobotApiKey: ""
 # flag to disable handling of Ingress resources
 # set to true if you don't want to create monitors automatically for your ingresses
 disableIngressHandling: false
+excludedDomains: dummy.local
+defaultHeaders: ''
+defaultMonitorType: 'HTTPS'
 
 image:
-  repository: ghcr.io/brennerm/uptimerobot-operator
+  repository: cr.twinhats.com/twinhats/uptimerobot-operator
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart appVersion.
-  tag: ""
+  tag: "latest"
 
 imagePullSecrets: []
 nameOverride: ""

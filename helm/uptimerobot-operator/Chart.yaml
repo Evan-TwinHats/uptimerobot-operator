@@ -1,6 +1,6 @@
 apiVersion: v2
 name: uptimerobot-operator
-description: A Kubernetes operator that creates uptime monitors for your ingresses
+description: A Kubernetes operator that creates uptime monitors for your ingresses, customized for TwinHats
 type: application
-version: 0.3.0
-appVersion: "v0.3.0"
+version: 0.5
+appVersion: "v0.5"

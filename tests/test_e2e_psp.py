@@ -3,6 +3,9 @@ import kubernetes.client as k8s_client
 import kubernetes.config as k8s_config
 import sys
 
+from ur_operator.config import Config
+from ur_operator.handlers.common.uptimerobot import UptimeRobot
+
 from .utils import namespace_handling, kopf_runner, create_opaque_secret, NAMESPACE, DEFAULT_WAIT_TIME
 
 import os
@@ -11,29 +14,36 @@ sys.path.insert(0, os.path.abspath(os.path.join(
     os.path.dirname(__file__), '../ur_operator')))
 
 
-import ur_operator.uptimerobot as uptimerobot
 from ur_operator.crds.psp import PspV1Beta1, PspSort
-from ur_operator.k8s import K8s
+from ur_operator.handlers.common.k8s import K8s
 
 
 k8s = K8s()
 k8s_config.load_kube_config()
 core_api = k8s_client.CoreV1Api()
-uptime_robot = uptimerobot.create_uptimerobot_api()
+uptime_robot = UptimeRobot(Config()).api
 
 
 def create_k8s_ur_psp(namespace, name, wait_for_seconds=DEFAULT_WAIT_TIME, **spec):
-    k8s.create_k8s_crd_obj(PspV1Beta1, namespace, name, **spec)
+<<<<<<< HEAD
+    k8s.create_resource(PspV1Beta1, namespace, name, **spec)
+=======
+    k8s.create_obj(PspV1Beta1, namespace, name, **spec)
+>>>>>>> 7e98f0b804dc5ff4ae1c76a84b313c4506b32e37
     time.sleep(wait_for_seconds)
 
 
 def update_k8s_ur_psp(namespace, name, wait_for_seconds=DEFAULT_WAIT_TIME, **spec):
-    k8s.update_k8s_crd_obj(PspV1Beta1, namespace, name, **spec)
+<<<<<<< HEAD
+    k8s.update_resource(PspV1Beta1, namespace, name, **spec)
+=======
+    k8s.update_obj(PspV1Beta1, namespace, name, **spec)
+>>>>>>> 7e98f0b804dc5ff4ae1c76a84b313c4506b32e37
     time.sleep(wait_for_seconds)
 
 
 def delete_k8s_ur_psp(namespace, name, wait_for_seconds=DEFAULT_WAIT_TIME):
-    k8s.delete_k8s_crd_obj(PspV1Beta1, namespace, name)
+    k8s.delete_resource(PspV1Beta1, namespace, name)
     time.sleep(wait_for_seconds)
 
 

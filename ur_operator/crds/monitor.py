@@ -1,17 +1,15 @@
-#!/usr/bin/env python3
+"""The UptimeRobotMonitor CustomResourceDefinition and related Enums & functions"""
 
-import base64
 import enum
 import json
 
-import kubernetes.client as k8s_client
+from .common.crd_base import BaseCrd
+from .common.property_types import v1string, v1object, v1boolean, v1integer
 
-from k8s import K8s
-from .constants import GROUP
-from .utils import camel_to_snake_case
+from .common.util import camel_to_snake_case, printer_column
 
 
-class MonitorType(enum.Enum):
+class MonitorType(enum.Enum):  # pylint: disable=missing-class-docstring
     HTTP = 1
     HTTPS = 1
     KEYWORD = 2
@@ -21,7 +19,7 @@ class MonitorType(enum.Enum):
 
 
 @enum.unique
-class MonitorSubType(enum.Enum):
+class MonitorSubType(enum.Enum):  # pylint: disable=missing-class-docstring
     HTTP = 1
     HTTPS = 2
     FTP = 3
@@ -32,7 +30,7 @@ class MonitorSubType(enum.Enum):
 
 
 @enum.unique
-class MonitorHttpMethod(enum.Enum):
+class MonitorHttpMethod(enum.Enum):  # pylint: disable=missing-class-docstring
     HEAD = 1
     GET = 2
     POST = 3
@@ -43,200 +41,109 @@ class MonitorHttpMethod(enum.Enum):
 
 
 @enum.unique
-class MonitorKeywordType(enum.Enum):
+class MonitorKeywordType(enum.Enum):  # pylint: disable=missing-class-docstring
     EXISTS = 1
     NOT_EXISTS = 2
 
 
 @enum.unique
-class MonitorStatus(enum.Enum):
+class MonitorStatus(enum.Enum):  # pylint: disable=missing-class-docstring
     PAUSED = 0
     NOT_CHECKED_YET = 1
 
 
 @enum.unique
-class MonitorHttpAuthType(enum.Enum):
+class MonitorHttpAuthType(enum.Enum):  # pylint: disable=missing-class-docstring
     BASIC_AUTH = 1
     DIGEST = 2
 
 
 @enum.unique
-class MonitorPostType(enum.Enum):
+class MonitorPostType(enum.Enum):  # pylint: disable=missing-class-docstring
     KEY_VALUE = 1
     RAW = 2
 
 
 @enum.unique
-class MonitorPostContentType(enum.Enum):
+class MonitorPostContentType(enum.Enum):  # pylint: disable=missing-class-docstring
     TEXT_HTML = 0
     APPLICATION_JSON = 1
 
 
-class MonitorV1Beta1:
-    plural = 'uptimerobotmonitors'
-    singular = 'uptimerobotmonitor'
-    kind = 'UptimeRobotMonitor'
-    short_names = ['urm']
-    version = 'v1beta1'
-
-    required_props = ['url', 'type']
-
-    spec_properties = {
-        'url': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description='URL that will be monitored'
-        ),
-        'type': k8s_client.V1JSONSchemaProps(
-            type='string',
-            enum=list(
-                MonitorType.__members__.keys()),
-            description=f'Type of monitor, one of: {",".join(list(MonitorType.__members__.keys()))}'
-        ),
-        'friendlyName': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description='Friendly name of monitor, defaults to name of UptimeRobotMonitor object'
-        ),
-        'subType': k8s_client.V1JSONSchemaProps(
-            type='string',
-            enum=list(
-                MonitorSubType.__members__.keys()),
-            description=f'Subtype of monitor, one of: {",".join(list(MonitorType.__members__.keys()))}'
-        ),
-        'port': k8s_client.V1JSONSchemaProps(
-            type='integer',
-            description=f'Port to monitor when using monitor sub type {MonitorType.PORT.name}'
-        ),
-        'keywordType': k8s_client.V1JSONSchemaProps(
-            type='string',
-            enum=list(
-                MonitorKeywordType.__members__.keys()),
-            description=f'Keyword type when using monitor type {MonitorType.KEYWORD.name}, one of: {",".join(list(MonitorKeywordType.__members__.keys()))}'
-        ),
-        'keywordValue': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description=f'Keyword value when using monitor type {MonitorType.KEYWORD.name}'
-        ),
-        'interval': k8s_client.V1JSONSchemaProps(
-            type='integer',
-            multiple_of=60.,
-            description='The interval for the monitoring check (300 seconds by default)'
-        ),
-        'httpUsername': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description=f'Used for password protected pages when using monitor type {MonitorType.HTTP.name},{MonitorType.HTTPS.name} or {MonitorType.KEYWORD.name}, deprecated: use httpAuthSecret'
-        ),
-        'httpPassword': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description=f'Used for password protected pages when using monitor type {MonitorType.HTTP.name},{MonitorType.HTTPS.name} or {MonitorType.KEYWORD.name}, deprecated: use httpAuthSecret'
-        ),
-        'httpAuthSecret': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description=f'reference to a Kubernetes secret in the same namespace containing user and password for password protected pages when using monitor type {MonitorType.HTTP.name},{MonitorType.HTTPS.name} or {MonitorType.KEYWORD.name}'
-        ),
-        'httpAuthType': k8s_client.V1JSONSchemaProps(
-            type='string',
-            enum=list(
-                MonitorHttpAuthType.__members__.keys()),
-            description=f'Used for password protected pages when using monitor type {MonitorType.HTTP.name},{MonitorType.HTTPS.name} or {MonitorType.KEYWORD.name}, one of: {",".join(list(MonitorHttpAuthType.__members__.keys()))}'
-        ),
-        'httpMethod': k8s_client.V1JSONSchemaProps(
-            type='string',
-            enum=list(
-                MonitorHttpMethod.__members__.keys()),
-            description=f'The HTTP method to be used, one of: {",".join(list(MonitorHttpMethod.__members__.keys()))}'
-        ),
-        'postType': k8s_client.V1JSONSchemaProps(
-            type='string',
-            enum=list(
-                MonitorPostType.__members__.keys()),
-            description='The format of data to be sent with POST, PUT, PATCH, DELETE, OPTIONS requests'
-        ),
-        'postContentType': k8s_client.V1JSONSchemaProps(
-            type='string',
-            enum=list(
-                MonitorPostContentType.__members__.keys()),
-            description=f'The Content-Type header to be sent with POST, PUT, PATCH, DELETE, OPTIONS requests, one of: {",".join(list(MonitorPostContentType.__members__.keys()))}'
-        ),
-        'postValue': k8s_client.V1JSONSchemaProps(
-            type='object',
-            description='The data to be sent with POST, PUT, PATCH, DELETE, OPTIONS requests',
-            x_kubernetes_preserve_unknown_fields=True
-        ),
-        'customHttpHeaders': k8s_client.V1JSONSchemaProps(
-            type='object',
-            description='Custom HTTP headers to be sent along monitor request, formatted as JSON',
-            x_kubernetes_preserve_unknown_fields=True
-        ),
-        'customHttpStatuses': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description='Allows to define HTTP status codes that will be handled as up or down, e.g. 404:0_200:1 to accept 404 as down and 200 as up'
-        ),
-        'ignoreSslErrors': k8s_client.V1JSONSchemaProps(
-            type='boolean',
-            description='Flag to ignore SSL certificate related issues'
-        ),
-        'alertContacts': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description='Alert contacts to be notified when monitor goes up or down. For syntax check https://uptimerobot.com/api/#newMonitorWrap'
-        ),
-        'mwindows': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description='Maintenance window IDs for this monitor'
-        )
-    }
-
-    crd = k8s_client.V1CustomResourceDefinition(
-        api_version='apiextensions.k8s.io/v1',
-        kind='CustomResourceDefinition',
-        metadata=k8s_client.V1ObjectMeta(name=f'{plural}.{GROUP}'),
-        spec=k8s_client.V1CustomResourceDefinitionSpec(
-            group=GROUP,
-            versions=[k8s_client.V1CustomResourceDefinitionVersion(
-                name=version,
-                served=True,
-                storage=True,
-                schema=k8s_client.V1CustomResourceValidation(
-                    open_apiv3_schema=k8s_client.V1JSONSchemaProps(
-                        type='object',
-                        properties={
-                            'spec': k8s_client.V1JSONSchemaProps(
-                                type='object',
-                                required=required_props,
-                                properties=spec_properties
-                            ),
-                            'status': k8s_client.V1JSONSchemaProps(
-                                type='object',
-                                x_kubernetes_preserve_unknown_fields=True
-                            )
-                        }
-                    )
-                )
-            )],
-            scope='Namespaced',
-            names=k8s_client.V1CustomResourceDefinitionNames(
-                plural=plural,
-                singular=singular,
-                kind=kind,
-                short_names=short_names
-            )
-        )
-    )
+class MonitorV1Beta1(BaseCrd):
+    """The UptimeRobotMonitor CustomResourceDefinition"""
 
     @staticmethod
-    def spec_to_request_dict(namespace:str, name: str, spec: dict) -> dict:
-        k8s = K8s()
+    def plural():
+        return 'uptimerobotmonitors'
 
+    @staticmethod
+    def singular():
+        return 'uptimerobotmonitor'
+
+    @staticmethod
+    def kind():
+        return 'UptimeRobotMonitor'
+
+    @staticmethod
+    def short_names():
+        return ['urm']
+
+    @staticmethod
+    def version():
+        return 'v1beta1'
+
+    @staticmethod
+    def required_properties():
+        return ['url']
+
+# pylint: disable=line-too-long
+    @staticmethod
+    def properties():
+        return {
+            'url': v1string('URL that will be monitored'),
+            'path': v1string('Path that will be appended to the URL to be monitored'),
+            'type': v1string('Type of monitor', MonitorType),
+            'friendlyName': v1string('Friendly name of monitor, defaults to name of UptimeRobotMonitor object'),
+            'subType': v1string('SubType of monitor', MonitorSubType),
+            'port': v1integer(f'Port to monitor when using monitor sub type {MonitorType.PORT.name}'),
+            'keywordType': v1string(f'Keyword type when using monitor type {MonitorType.KEYWORD.name}', MonitorKeywordType),
+            'keywordValue': v1string(f'Keyword value when using monitor type {MonitorType.KEYWORD.name}'),
+            'interval': v1integer('The interval for the monitoring check (300 seconds by default)', 60.),
+            'httpAuthSecret': v1string(f'reference to a Kubernetes secret in the same namespace containing user and password for password protected pages when using monitor type {MonitorType.HTTP.name},{MonitorType.HTTPS.name} or {MonitorType.KEYWORD.name}'),
+            'httpAuthType': v1string(f'Used for password protected pages when using monitor type {MonitorType.HTTP.name},{MonitorType.HTTPS.name} or {MonitorType.KEYWORD.name}', MonitorHttpAuthType),
+            'httpMethod': v1string('The HTTP method to be used', MonitorHttpMethod),
+            'postType': v1string('The format of data to be sent with POST, PUT, PATCH, DELETE, OPTIONS requests', MonitorPostType),
+            'postContentType': v1string('The Content-Type header to be sent with POST, PUT, PATCH, DELETE, OPTIONS requests', MonitorPostContentType),
+            'postValue': v1object('The data to be sent with POST, PUT, PATCH, DELETE, OPTIONS requests'),
+            'customHttpHeaders': v1object('Custom HTTP headers to be sent along monitor request, formatted as JSON'),
+            'customHttpStatuses': v1string('Allows to define HTTP status codes that will be handled as up or down, e.g. 404:0_200:1 to accept 404 as down and 200 as up'),
+            'ignoreSslErrors': v1boolean('Flag to ignore SSL certificate related issues'),
+            'alertContacts': v1string('Alert contacts to be notified when monitor goes up or down. For syntax check https://uptimerobot.com/api/#newMonitorWrap'),
+            'mwindows': v1string('Maintenance window IDs for this monitor')
+        }
+# pylint: enable=line-too-long
+
+    @staticmethod
+    def printer_columns():
+        return [
+            printer_column('Friendly Name', '.spec.friendlyName'),
+            printer_column('Ingress', '.metadata.ownerReferences[0].name'),
+            printer_column('Monitor Type', '.spec.type'),
+            printer_column('Monitored URL', '.spec.url'),
+            printer_column('Monitored Path', '.spec.path')
+        ]
+
+    @staticmethod
+    def spec_to_request_dict(name: str, spec: dict) -> dict:
         # convert all keys from camel to snake case
         request_dict = {camel_to_snake_case(k): v for k, v in spec.items()}
         request_dict['friendly_name'] = request_dict.get('friendly_name', name)
         request_dict['type'] = MonitorType[spec['type']].value
 
-        if 'http_auth_secret' in request_dict:
-            secret = k8s.get_secret(namespace, request_dict['http_auth_secret'])
-
-            request_dict['http_username'] = base64.b64decode(secret.data['username']).decode()
-            request_dict['http_password'] = base64.b64decode(secret.data['password']).decode()
-            request_dict.pop('http_auth_secret')
+        if 'path' in request_dict and spec['type'] in ['HTTP', 'HTTPS', 'KEYWORD']:
+            request_dict['url'] = request_dict['url'] + \
+                request_dict.pop('path')
 
         # map enum values
         for key, enum_class in {
@@ -249,42 +156,28 @@ class MonitorV1Beta1:
         }.items():
             request_dict[key] = enum_class[request_dict[key]
                                            ].value if key in request_dict else None
-
         # drop None entries
 
         return {k: v for k, v in request_dict.items() if v is not None}
 
     @staticmethod
-    def annotations_to_spec_dict(annotations: dict) -> dict:
+    def validate_spec(proto_spec: dict) -> dict:
+        """Parse each string value in a dict into the correct type based on its key. 
+        Also sets the keywordType to NOT_EXISTS if it hasn't been otherwise specified"""
         spec = {}
 
-        for key, value in annotations.items():
-            if key not in MonitorV1Beta1.spec_properties:
+        for key, value in proto_spec.items():
+            if key not in MonitorV1Beta1.properties():
                 continue
 
-            if MonitorV1Beta1.spec_properties[key].type == 'integer':
+            if MonitorV1Beta1.properties()[key].type == 'integer':
                 spec[key] = int(value)
-            elif MonitorV1Beta1.spec_properties[key].type == 'object':
+            elif MonitorV1Beta1.properties()[key].type == 'object' and isinstance(value, str):
                 spec[key] = json.loads(value)
             else:
                 spec[key] = value
 
+        if spec['type'] == 'KEYWORD' and 'keywordType' not in spec:
+            spec['keywordType'] = 'NOT_EXISTS'
+
         return spec
-
-    @staticmethod
-    def construct_k8s_ur_monitor_body(namespace, name=None, **spec):
-        metadata = {
-            'namespace': namespace
-        }
-
-        if name:
-            metadata['name'] = name
-
-        return {
-            'apiVersion': f'{GROUP}/{MonitorV1Beta1.version}',
-            'kind': MonitorV1Beta1.kind,
-            'metadata': metadata,
-            'spec': spec
-        }
-
-

@@ -1,15 +1,13 @@
-#!/usr/bin/env python3
-
+"""AlertContact CRD"""
 import enum
 
-import kubernetes.client as k8s_client
-
-from .constants import GROUP
-from .utils import camel_to_snake_case
+from .common.crd_base import BaseCrd
+from .common.property_types import v1string as string
+from .common.util import camel_to_snake_case
 
 
 @enum.unique
-class AlertContactType(enum.Enum):
+class AlertContactType(enum.Enum):  # pylint: disable=missing-class-docstring
     SMS = 1
     EMAIL = 2
     TWITTER_DM = 3
@@ -22,68 +20,41 @@ class AlertContactType(enum.Enum):
     SLACK = 11
 
 
-class AlertContactV1Beta1:
-    plural = 'alertcontacts'
-    singular = 'alertcontact'
-    kind = 'AlertContact'
-    short_names = ['ac']
-    version = 'v1beta1'
+class AlertContactV1Beta1(BaseCrd):
+    """Class for AlertContactV1Beta1 CRD"""
+    @staticmethod
+    def plural():
+        return 'alertcontacts'
 
-    required_props = ['type', 'value']
+    @staticmethod
+    def singular():
+        return 'alertcontact'
 
-    spec_properties = {
-        'type': k8s_client.V1JSONSchemaProps(
-            type='string',
-            enum=list(
-                AlertContactType.__members__.keys()),
-            description=f'the type of alert contact, one of: {",".join(list(AlertContactType.__members__.keys()))}'
-        ),
-        'value': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description='the alert contact\'s mail address / phone number / URL / connection string'
-        ),
-        'friendlyName': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description='friendly name of the alert contact, defaults to name of the AlertContact object'
-        )
-    }
+    @staticmethod
+    def kind():
+        return 'AlertContact'
 
-    crd = k8s_client.V1CustomResourceDefinition(
-        api_version='apiextensions.k8s.io/v1',
-        kind='CustomResourceDefinition',
-        metadata=k8s_client.V1ObjectMeta(name=f'{plural}.{GROUP}'),
-        spec=k8s_client.V1CustomResourceDefinitionSpec(
-            group=GROUP,
-            versions=[k8s_client.V1CustomResourceDefinitionVersion(
-                name=version,
-                served=True,
-                storage=True,
-                schema=k8s_client.V1CustomResourceValidation(
-                    open_apiv3_schema=k8s_client.V1JSONSchemaProps(
-                        type='object',
-                        properties={
-                            'spec': k8s_client.V1JSONSchemaProps(
-                                type='object',
-                                required=required_props,
-                                properties=spec_properties
-                            ),
-                            'status': k8s_client.V1JSONSchemaProps(
-                                type='object',
-                                x_kubernetes_preserve_unknown_fields=True
-                            )
-                        }
-                    )
-                )
-            )],
-            scope='Namespaced',
-            names=k8s_client.V1CustomResourceDefinitionNames(
-                plural=plural,
-                singular=singular,
-                kind=kind,
-                short_names=short_names
-            )
-        )
-    )
+    @staticmethod
+    def short_names():
+        return ['ac']
+
+    @staticmethod
+    def version():
+        return 'v1beta1'
+
+    @staticmethod
+    def required_properties():
+        return ['type', 'value']
+
+# pylint: disable=line-too-long
+    @staticmethod
+    def properties():
+        return {
+            'type': string('the type of alert contact', AlertContactType),
+            'value': string('the alert contact\'s mail address / phone number / URL / connection string'),
+            'friendlyName': string('friendly name of the alert contact, defaults to name of the AlertContact object')
+        }
+# pylint: enable=line-too-long
 
     @staticmethod
     def spec_to_request_dict(name: str, spec: dict) -> dict:
@@ -99,5 +70,4 @@ class AlertContactV1Beta1:
                                            ].value if key in request_dict else None
 
         # drop None entries
-
         return {k: v for k, v in request_dict.items() if v is not None}

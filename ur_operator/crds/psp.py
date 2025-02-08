@@ -1,125 +1,73 @@
-#!/usr/bin/env python3
+"""Class for PspV1Beta1 CRD"""
 import enum
-import base64
 
-import kubernetes.client as k8s_client
+from .common.crd_base import BaseCrd
+from .common.property_types import v1string as string, v1boolean as boolean
+from .common.util import camel_to_snake_case
 
-from k8s import K8s
-from .constants import GROUP
-from .utils import camel_to_snake_case
 
 @enum.unique
-class PspStatus(enum.Enum):
+class PspStatus(enum.Enum):  # pylint: disable=missing-class-docstring
     PAUSED = 0
     ACTIVE = 1
 
 
 @enum.unique
-class PspSort(enum.Enum):
+class PspSort(enum.Enum):  # pylint: disable=missing-class-docstring
     FRIENDLY_NAME_A_Z = 1
     FRIENDLY_NAME_Z_A = 2
     STATUS_UP_DOWN_PAUSED = 3
     STATUS_DOWN_UP_PAUSED = 4
 
 
-class PspV1Beta1:
-    plural = 'publicstatuspages'
-    singular = 'publicstatuspage'
-    kind = 'PublicStatusPage'
-    short_names = ['psp']
-    version = 'v1beta1'
-
-    required_props = ['monitors']
-
-    spec_properties = {
-        'monitors': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description='the list of monitor IDs to be displayed in status page (the values are seperated with "-" or 0 for all monitors)'
-        ),
-        'friendlyName': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description='Friendly name of public status page, defaults to name of PublicStatusPage object'
-        ),
-        'customDomain': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description='the domain or subdomain that the status page will run on'
-        ),
-        'password': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description='the password for the status page, deprecated: use passwordSecret'
-        ),
-        'passwordSecret': k8s_client.V1JSONSchemaProps(
-            type='string',
-            description='reference to a Kubernetes secret in the same namespace containing the password for the status page'
-        ),
-        'sort': k8s_client.V1JSONSchemaProps(
-            type='string',
-            enum=list(
-                PspSort.__members__.keys()),
-            description=f'the sorting of the monitors on the status page, one of: {",".join(list(PspSort.__members__.keys()))}'
-        ),
-        'status': k8s_client.V1JSONSchemaProps(
-            type='string',
-            enum=list(
-                PspStatus.__members__.keys()),
-            description=f'the status of the status page, one of: {",".join(list(PspStatus.__members__.keys()))}'
-        ),
-        'hideUrlLinks': k8s_client.V1JSONSchemaProps(
-            type='boolean',
-            description='Flag to remove the UptimeRobot link from the status page (pro plan feature)'
-        )
-    }
-
-    crd = k8s_client.V1CustomResourceDefinition(
-        api_version='apiextensions.k8s.io/v1',
-        kind='CustomResourceDefinition',
-        metadata=k8s_client.V1ObjectMeta(name=f'{plural}.{GROUP}'),
-        spec=k8s_client.V1CustomResourceDefinitionSpec(
-            group=GROUP,
-            versions=[k8s_client.V1CustomResourceDefinitionVersion(
-                name=version,
-                served=True,
-                storage=True,
-                schema=k8s_client.V1CustomResourceValidation(
-                    open_apiv3_schema=k8s_client.V1JSONSchemaProps(
-                        type='object',
-                        properties={
-                            'spec': k8s_client.V1JSONSchemaProps(
-                                type='object',
-                                required=required_props,
-                                properties=spec_properties
-                            ),
-                            'status': k8s_client.V1JSONSchemaProps(
-                                type='object',
-                                x_kubernetes_preserve_unknown_fields=True
-                            )
-                        }
-                    )
-                )
-            )],
-            scope='Namespaced',
-            names=k8s_client.V1CustomResourceDefinitionNames(
-                plural=plural,
-                singular=singular,
-                kind=kind,
-                short_names=short_names
-            )
-        )
-    )
+class PspV1Beta1(BaseCrd):
+    """Class for PspV1Beta1 CRD"""
 
     @staticmethod
-    def spec_to_request_dict(namespace: str, name: str, spec: dict) -> dict:
-        k8s = K8s()
+    def plural():
+        return 'publicstatuspages'
+
+    @staticmethod
+    def singular():
+        return 'publicstatuspage'
+
+    @staticmethod
+    def kind():
+        return 'PublicStatusPage'
+
+    @staticmethod
+    def short_names():
+        return ['psp']
+
+    @staticmethod
+    def version():
+        return 'v1beta1'
+
+    @staticmethod
+    def required_properties():
+        return ['monitors']
+# pylint: disable=line-too-long
+
+    @staticmethod
+    def properties():
+        return {
+            'monitors': string('the list of monitor IDs to be displayed in status page (the values are seperated with "-" or 0 for all monitors)'),
+            'friendlyName': string('Friendly name of public status page, defaults to name of PublicStatusPage object'),
+            'customDomain': string('the domain or subdomain that the status page will run on'),
+            'password': string('the password for the status page, deprecated: use passwordSecret'),
+            'passwordSecret': string('reference to a Kubernetes secret in the same namespace containing the password for the status page'),
+            'sort': string('the sorting of the monitors on the status page', PspSort),
+            'status': string('the status of the status page', PspStatus),
+            'hideUrlLinks': boolean('Flag to remove the UptimeRobot link from the status page (pro plan feature)')
+        }
+# pylint: enable=line-too-long
+
+    @staticmethod
+    def spec_to_request_dict(name: str, spec: dict) -> dict:
 
         # convert all keys from camel to snake case
         request_dict = {camel_to_snake_case(k): v for k, v in spec.items()}
         request_dict['friendly_name'] = request_dict.get('friendly_name', name)
-
-        if 'password_secret' in request_dict:
-            secret = k8s.get_secret(namespace, request_dict['password_secret'])
-
-            request_dict['password'] = base64.b64decode(secret.data['password']).decode()
-            request_dict.pop('password_secret')
 
         # map enum values
         for key, enum_class in {

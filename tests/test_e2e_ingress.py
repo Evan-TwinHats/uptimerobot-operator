@@ -3,6 +3,9 @@ import kubernetes.client as k8s_client
 import kubernetes.config as k8s_config
 import sys
 
+from ur_operator.config import Config
+from ur_operator.handlers.common.uptimerobot import UptimeRobot
+
 from .utils import namespace_handling, kopf_runner, kopf_runner_without_ingress_handling, NAMESPACE, DEFAULT_WAIT_TIME
 
 import os
@@ -11,14 +14,13 @@ sys.path.insert(0, os.path.abspath(os.path.join(
     os.path.dirname(__file__), '../ur_operator')))
 
 
-import ur_operator.uptimerobot as uptimerobot
 from ur_operator.crds.monitor import MonitorType, MonitorHttpAuthType
-from ur_operator.crds.constants import GROUP
-from ur_operator.k8s import K8s
+from ur_operator.crds.common.constants import GROUP
+from ur_operator.handlers.common.k8s import K8s
 
 k8s_config.load_kube_config()
 networking_api = k8s_client.NetworkingV1beta1Api()
-uptime_robot = uptimerobot.create_uptimerobot_api()
+uptime_robot = UptimeRobot(Config()).api
 
 def create_k8s_ingress(namespace, name, urls, annotations={}, wait_for_seconds=DEFAULT_WAIT_TIME):
     networking_api.create_namespaced_ingress(

@@ -36,6 +36,12 @@ spec:
           env:
             - name: UPTIMEROBOT_API_KEY
               value: {{ required "uptimeRobotApiKey has not been provided!" .Values.uptimeRobotApiKey | quote }}
+            - name: URO_EXCLUDED_DOMAINS
+              value: {{ .Values.excludedDomains | quote }}
+            - name: URO_DEFAULT_HEADERS
+              value: {{ .Values.defaultHeaders | quote }}
+            - name: URO_DEFAULT_MONITOR_TYPE
+              value: {{ .Values.defaultMonitorType | quote }}
             - name: URO_DISABLE_INGRESS_HANDLING
               value: {{ .Values.disableIngressHandling | quote }}
             - name: KOPF_OPTS

@@ -57,7 +57,7 @@
                 "sha256:f411cb22115cb15452d099fec0ee636b06cf81bfb40ed9c02d30c8dc2bc2e3d1"
             ],
             "markers": "python_version >= '3.6'",
-            "version": "==3.7.3"
+            "version": "==3.8.2"
         },
         "aiojobs": {
             "hashes": [
@@ -73,7 +73,7 @@
                 "sha256:4291ca197d287d274d0b6cb5d6f8f8f82d434ed288f962539ff18cc9012f9ea3"
             ],
             "markers": "python_full_version >= '3.5.3'",
-            "version": "==3.0.1"
+            "version": "==4.0.3"
         },
         "attrs": {
             "hashes": [
@@ -143,7 +143,7 @@
                 "sha256:f38eb28ba4e4071e5cdcee85f30c12549091f37470fdb84dac7c6e670de74da9"
             ],
             "index": "pypi",
-            "version": "==1.29.2"
+            "version": "==1.37.4"
         },
         "kubernetes": {
             "hashes": [
@@ -280,7 +280,7 @@
                 "sha256:fa5ae20527d8e831e8230cbffd9f8fe952815b2b7dae6ffec25318803a7528fc"
             ],
             "markers": "python_version >= '2.7' and python_version not in '3.0, 3.1, 3.2, 3.3, 3.4, 3.5'",
-            "version": "==5.4.1"
+            "version": "==6.0.1"
         },
         "requests": {
             "hashes": [
@@ -386,7 +386,7 @@
                 "sha256:fcbb48a93e8699eae920f8d92f7160c03567b421bc17362a9ffbbd706a816f71"
             ],
             "markers": "python_version >= '3.6'",
-            "version": "==1.6.3"
+            "version": "==1.8.1"
         }
     },
     "develop": {

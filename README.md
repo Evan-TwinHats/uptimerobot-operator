@@ -1,10 +1,10 @@
 # uptimerobot-operator
 
+
 This operator automatically creates uptime monitors at [UptimeRobot](https://uptimerobot.com) for your Kubernetes Ingress resources. This allows you to easily integrate uptime monitoring of your services into your Kubernetes deployments.
 
-> :warning: **This project is still in an early phase. Use it on your own risk but make sure to create issues for issues you encounter.**
-
-:heart: to UptimeRobot for providing a pro account to be able to test the pro plan features!
+Originally based on work by [brennerm](https://github.com/brennerm).
+> :warning: **This project is in beta. Use it on your own risk and make sure to create issues for issues you encounter.**
 
 ## Usage
 
@@ -16,8 +16,8 @@ kind: Ingress
 metadata:
   name: my-ingress
   annotations:
-    uroperator.brennerm.github.io/monitor.type: HTTPS
-    uroperator.brennerm.github.io/monitor.interval: "600"
+    uptimerobot.twinhats.com/monitor.type: HTTPS
+    uptimerobot.twinhats.com/monitor.interval: "600"
 spec:
   rules:
   - host: brennerm.github.io
@@ -37,7 +37,7 @@ a new monitor for the URL *https://brennerm.github.io* is automatically being cr
 The same monitor can also be created using the UptimeRobotMonitor resource like so:
 
 ```yaml
-apiVersion: uroperator.brennerm.github.io/v1beta1
+apiVersion: uptimerobot.twinhats.com/v1beta1
 kind: UptimeRobotMonitor
 metadata:
   name: my-custom-monitor
@@ -59,7 +59,7 @@ The operator also supports creating public status pages. See below for details.
 
 ### Deploying to Kubernetes using Helm
 
-1. Add the uptimerobot-operator chart repo `helm repo add uptimerobot-operator https://brennerm.github.io/uptimerobot-operator/helm`
+1. Add the uptimerobot-operator chart repo, currently only available via the git repo.
 2. Deploy the Helm chart `helm upgrade --install uptimerobot-operator uptimerobot-operator --set uptimeRobotApiKey=$MY_UPTIMEROBOT_API_KEY`
 
 Have a look at the [values file](helm/uptimerobot-operator/values.yaml) if you want to customize the deployment.
@@ -90,6 +90,7 @@ The UptimeRobotMonitor resource supports all current parameters for monitors tha
 |key|type|description|
 |-|-|-|
 |`url` (required)|`string`|URL that will be monitored|
+|`path` |`string`|path that will be appended to the URL to be monitored|
 |`type` (required)|`string`|Type of monitor, one of: HTTP,HTTPS,KEYWORD,PING,PORT,HEARTBEAT|
 |`friendlyName`|`string`|Friendly name of monitor, defaults to name of UptimeRobotMonitor object|
 |`subType`|`string`|Subtype of monitor, one of: HTTP,HTTPS,KEYWORD,PING,PORT,HEARTBEAT|
@@ -113,7 +114,7 @@ The UptimeRobotMonitor resource supports all current parameters for monitors tha
 
 ### Ingress
 
-For Ingress resources the same parameters are supported. You pass them through annotations attached to your Ingress with the prefix `uroperator.brennerm.github.io/monitor.`.
+For Ingress resources the same parameters are supported. You pass them through annotations attached to your Ingress with the prefix `uptimerobot.twinhats.com/monitor.`.
 See below for an example.
 
 ```yaml
@@ -122,8 +123,8 @@ kind: Ingress
 metadata:
   name: my-ingress
   annotations:
-    uroperator.brennerm.github.io/monitor.type: HTTPS
-    uroperator.brennerm.github.io/monitor.interval: "600"
+    uptimerobot.twinhats.com/monitor.type: HTTPS
+    uptimerobot.twinhats.com/monitor.interval: "600"
 spec:
   rules:
 ...
@@ -147,7 +148,7 @@ The PublicStatusPage resource supports all current parameters for status pages t
 |`hideUrlLinks`|`boolean`|Flag to remove the UptimeRobot link from the status page (pro plan feature)|
 
 ```yaml
-apiVersion: uroperator.brennerm.github.io/v1beta1
+apiVersion: uptimerobot.twinhats.com/v1beta1
 kind: PublicStatusPage
 metadata:
   name: my-public-status-page
@@ -168,7 +169,7 @@ The MaintenanceWindow resource supports all current parameters for maintenance w
 |`value`|`string`|allows to specify the maintenance window selection, e.g. 2-4-5 for Tuesday-Thursday-Friday or 10-17-26 for the days of the month, only valid and required for MaintenanceWindowType.WEEKLY and MaintenanceWindowType.MONTHLY|
 
 ```yaml
-apiVersion: uroperator.brennerm.github.io/v1beta1
+apiVersion: uptimerobot.twinhats.com/v1beta1
 kind: MaintenanceWindow
 metadata:
   name: my-maintenance-window
@@ -189,7 +190,7 @@ The AlertContact resource supports all current parameters for alert contacts tha
 |`friendlyName`|`string`|friendly name of the alert contact, defaults to name of the AlertContact object|
 
 ```yaml
-apiVersion: uroperator.brennerm.github.io/v1beta1
+apiVersion: uptimerobot.twinhats.com/v1beta1
 kind: AlertContact
 metadata:
   name: my-alert-contact
